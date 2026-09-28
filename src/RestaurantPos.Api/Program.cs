@@ -4,6 +4,7 @@ using RestaurantPos.Api.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("Pos") ?? $"Data Source={DefaultDbPath()}";
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDbContext<PosDbContext>(o => o.UseSqlite(connectionString));
 
 var app = builder.Build();

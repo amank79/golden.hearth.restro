@@ -9,8 +9,19 @@ public enum OrderType { DineIn, Takeaway }
 public enum BillStatus { Open, Paid, Cancelled }
 public enum PaymentMethod { Cash, Upi, Card }
 
+/// <summary>
+/// Base for every stored row. PublicId is a stable id for the future cloud sync (the local int Id is not
+/// unique across machines). CreatedAt/UpdatedAt are set automatically in <see cref="PosDbContext.SaveChanges()"/>.
+/// </summary>
+public abstract class Entity
+{
+    public Guid PublicId { get; set; } = Guid.NewGuid();
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
 /// <summary>Single row (Id = 1) holding the restaurant details printed on every bill.</summary>
-public class RestaurantSettings
+public class RestaurantSettings : Entity
 {
     public int Id { get; set; } = 1;
     public string Name { get; set; } = "Your Restaurant";
@@ -24,7 +35,7 @@ public class RestaurantSettings
     public string? OwnerPinHash { get; set; }
 }
 
-public class Category
+public class Category : Entity
 {
     public int Id { get; set; }
     public string Name { get; set; } = "";
@@ -33,7 +44,7 @@ public class Category
     public List<MenuItem> Items { get; set; } = [];
 }
 
-public class MenuItem
+public class MenuItem : Entity
 {
     public int Id { get; set; }
     public int CategoryId { get; set; }
@@ -49,7 +60,7 @@ public class MenuItem
 }
 
 /// <summary>A priced option of an item. Items without Half/Full have one variant named "Regular".</summary>
-public class ItemVariant
+public class ItemVariant : Entity
 {
     public int Id { get; set; }
     public int MenuItemId { get; set; }
@@ -58,7 +69,7 @@ public class ItemVariant
     public int SortOrder { get; set; }
 }
 
-public class Bill
+public class Bill : Entity
 {
     public int Id { get; set; }
 
@@ -92,7 +103,7 @@ public class Bill
 }
 
 /// <summary>Names and price are copied from the menu so later menu changes never alter old bills.</summary>
-public class BillLine
+public class BillLine : Entity
 {
     public int Id { get; set; }
     public int BillId { get; set; }
@@ -106,7 +117,7 @@ public class BillLine
     public long LineTotalPaise { get; set; }
 }
 
-public class Payment
+public class Payment : Entity
 {
     public int Id { get; set; }
     public int BillId { get; set; }
