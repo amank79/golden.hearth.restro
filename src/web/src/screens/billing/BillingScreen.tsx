@@ -23,8 +23,10 @@ type Dialog =
   | { kind: 'cancel' }
 
 interface Props {
-  /** Print the bill (finalise + preview). Supplied by the print step; returns the updated bill. */
+  /** Prints the bill (the first print gives it its number) and shows it; returns the updated bill. */
   onPrint: (bill: Bill) => Promise<Bill | null>
+  /** Shows the bill as it will print, without printing it. */
+  onPreview: (bill: Bill) => void
 }
 
 /** "3*bn" or "3 x bn" → quantity 3, search "bn". */
@@ -39,7 +41,7 @@ function billIdFromHash(): number | null {
 }
 
 /** Counter billing: open bills, menu grid with search and categories, current bill with totals and payment. */
-export function BillingScreen({ onPrint }: Props) {
+export function BillingScreen({ onPrint, onPreview }: Props) {
   const [menu, setMenu] = useState<Menu | null>(null)
   const [openBills, setOpenBills] = useState<BillSummary[]>([])
   const [bill, setBill] = useState<Bill | null>(null)
@@ -174,7 +176,7 @@ export function BillingScreen({ onPrint }: Props) {
   // Counter shortcuts. Dialogs handle their own keys.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (dialog) return
+      if (dialog || document.querySelector('.overlay')) return // any dialog open (also the print preview)
       const inField = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
       if (e.key === 'F2' || (e.key === '/' && !inField)) {
         e.preventDefault()
@@ -301,6 +303,9 @@ export function BillingScreen({ onPrint }: Props) {
                 </div>
                 <div className="sub">
                   Started {minutesAgo(bill.openedAt, now)}
+                  {bill.lines.length > 0 && (
+                    <> · <button className="link-btn" onClick={() => onPreview(bill)}>Preview bill</button></>
+                  )}
                   {editable && bill.orderType === 'DineIn' && (
                     <> · <button className="link-btn" onClick={() => setDialog({ kind: 'table', mode: 'change' })}>Change table</button></>
                   )}

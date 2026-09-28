@@ -4,6 +4,7 @@ using RestaurantPos.Api.Data;
 using RestaurantPos.Api.Features;
 using RestaurantPos.Api.Features.Billing;
 using RestaurantPos.Api.Features.Menu;
+using RestaurantPos.Api.Features.Printing;
 using RestaurantPos.Api.Features.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,6 +42,7 @@ api.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 api.MapSettingsEndpoints();
 api.MapMenuEndpoints();
 api.MapBillEndpoints();
+api.MapPrintEndpoints();
 
 app.MapFallback("/api/{**path}", () => Results.NotFound());
 app.MapFallbackToFile("index.html");

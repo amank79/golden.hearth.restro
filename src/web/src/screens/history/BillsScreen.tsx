@@ -12,6 +12,7 @@ import { CancelDialog } from '../billing/CancelDialog'
 
 interface Props {
   onPrint: (bill: Bill) => Promise<Bill | null>
+  onPreview: (bill: Bill) => void
 }
 
 const PAGE = 50
@@ -29,7 +30,7 @@ function StatusPill({ b }: { b: Pick<BillSummary, 'status' | 'billNo'> }) {
 }
 
 /** Bill history with search, today's total, bill details, reprint and cancel. */
-export function BillsScreen({ onPrint }: Props) {
+export function BillsScreen({ onPrint, onPreview }: Props) {
   const [today, setToday] = useState<TodaySummary | null>(null)
   const [q, setQ] = useState('')
   const [from, setFrom] = useState(indiaToday)
@@ -174,6 +175,7 @@ export function BillsScreen({ onPrint }: Props) {
           <div className="modal-actions">
             {detail.status === 'Open' && <a className="btn" href={`#billing/${detail.id}`}>Open in Billing</a>}
             {detail.status !== 'Cancelled' && <button className="btn danger" onClick={() => setCancelling(true)}>Cancel bill</button>}
+            {detail.lines.length > 0 && <button className="btn" onClick={() => onPreview(detail)}>View bill</button>}
             {detail.status !== 'Cancelled' && detail.lines.length > 0 && (
               <button className="btn dark" onClick={() => void reprint()}>
                 <Icon name="print" />{detail.printCount > 0 ? 'Reprint (DUPLICATE)' : 'Print'}

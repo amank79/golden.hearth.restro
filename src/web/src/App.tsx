@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Icon, type IconName } from './components/Icon'
+import { PrintPreview } from './components/PrintPreview'
 import { Toaster } from './components/Toaster'
 import { toast } from './components/toast'
 import { api, errorText } from './lib/api'
 import { time } from './lib/bills'
 import { rupees } from './lib/money'
-import type { Bill, Settings, TodaySummary } from './lib/types'
+import type { Bill, PrintOutput, Settings, TodaySummary } from './lib/types'
 import { BillingScreen } from './screens/billing/BillingScreen'
 import { BillsScreen } from './screens/history/BillsScreen'
 import { MenuScreen } from './screens/menu/MenuScreen'
@@ -56,18 +57,29 @@ export default function App() {
     }
   }, [loadToday])
 
-  // Printing: finalises the bill (gives it a number). The print preview comes with the bill print layout.
+  const [preview, setPreview] = useState<{ output: PrintOutput; printed: boolean } | null>(null)
+
+  // Print a bill: the first print gives it its number; later prints are marked DUPLICATE.
   const printBill = useCallback(async (bill: Bill): Promise<Bill | null> => {
     try {
-      const b = await api.post<Bill>(`/bills/${bill.id}/finalise`)
-      toast(`Bill ${b.billNo} is ready.`)
+      const output = await api.post<PrintOutput>(`/bills/${bill.id}/print`)
+      setPreview({ output, printed: true })
       loadToday()
-      return b
+      return output.bill
     } catch (e) {
       toast(errorText(e), 'error')
       return null
     }
   }, [loadToday])
+
+  // Show what the bill will look like, without printing or numbering it.
+  const previewBill = useCallback(async (bill: Bill) => {
+    try {
+      setPreview({ output: await api.get<PrintOutput>(`/bills/${bill.id}/print-preview`), printed: false })
+    } catch (e) {
+      toast(errorText(e), 'error')
+    }
+  }, [])
 
   const loadSettings = useCallback(() => {
     api.get<Settings>('/settings').then(setSettings, (e) => setLoadError(errorText(e)))
@@ -127,14 +139,15 @@ export default function App() {
             <div className="empty">Loading…</div>
           ) : (
             <>
-              {screen === 'billing' && <BillingScreen onPrint={printBill} />}
-              {screen === 'bills' && <BillsScreen onPrint={printBill} />}
+              {screen === 'billing' && <BillingScreen onPrint={printBill} onPreview={previewBill} />}
+              {screen === 'bills' && <BillsScreen onPrint={printBill} onPreview={previewBill} />}
               {screen === 'menu' && <MenuScreen settings={settings} />}
               {screen === 'settings' && <SettingsScreen settings={settings} onSaved={setSettings} />}
             </>
           )}
         </div>
       </main>
+      {preview && <PrintPreview output={preview.output} printed={preview.printed} onClose={() => setPreview(null)} />}
       <Toaster />
     </div>
   )

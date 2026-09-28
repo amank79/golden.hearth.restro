@@ -166,3 +166,11 @@ export interface CancelResult {
   cancelled: Bill
   newBill: Bill | null
 }
+
+export interface PrintOutput {
+  bill: Bill
+  duplicate: boolean
+  isDraft: boolean
+  text: string
+  escPosBase64: string
+}
