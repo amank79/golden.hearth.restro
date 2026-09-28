@@ -54,8 +54,9 @@ Staff log in with a 4–6 digit PIN. Each role sees only its own screens.
 | Phase | Target | Contents |
 |---|---|---|
 | **Phase 1: Billing + menu (now)** | Ready on or before Navratri (about 11 Oct 2026) | Installed on the family's Windows laptop; works fully without internet. **Menu management:** MENU-1, 2, 3, 5, 6, 7, 8. **Billing:** dine-in (table number) and takeaway, several bills open at the same time, add items with Half/Full and quantity (ORD-2 simplified, ORD-3), GST bill (BILL-1, 2, 3, 4, 6, 8, 9), bill history with search and reprint, today's total. **Bill printing** on a thermal printer. **Settings:** SET-1, SET-2. **Safety:** owner PIN for menu changes, cancellations and discounts; automatic daily backup (SYS-3, to a pen drive or cloud folder). |
-| **Phase 2: Restaurant operations** | After opening, when the family asks | Kitchen tickets (KOT), table map, move/merge tables, waiter phones, staff logins and activity log, full reports, day close, expenses, kitchen screen, online menu for home. |
-| **Phase 3: Online** | Later | QR table ordering, online payment, WhatsApp bills, owner's phone view. Needs the payment gateway and WhatsApp approvals. |
+| **Phase 1.1: Updates while in use** | Oct 2026 – Mar 2027 | The system runs only on the laptop for about 5–6 months. Bug fixes and small changes are delivered as updates. **First update by 5 Nov 2026:** monthly sales and GST summary for the CA (REP-3), needed for the first GST return. Remote support access set up on the laptop. |
+| **Phase 2: Restaurant operations** | About Mar–Apr 2027, after 5–6 months of use | Kitchen tickets (KOT), table map, move/merge tables, waiter phones, staff logins and activity log, full reports, day close, expenses, kitchen screen, online menu for home. |
+| **Phase 3: Online + cloud** | With or right after Phase 2 (about Apr–May 2027) | QR table ordering, online payment, WhatsApp bills, owner's phone view. Includes setting up the cloud infrastructure and moving/syncing the laptop data to it. Needs the payment gateway and WhatsApp approvals. |
 
 In §5, requirements marked R0 or R1 that are not listed under Phase 1 belong to Phase 2; requirements marked R2 belong to Phase 3.
 
@@ -236,6 +237,8 @@ Priority: **M** = must have for that release, **S** = should have, **C** = could
 - Printing: bills are sent as ESC/POS commands through the Windows printer driver, so a USB or LAN thermal printer both work.
 - Backup: the database is copied automatically every day (and when the app closes) to a pen drive and/or a cloud folder such as Google Drive; 30 days kept.
 - No internet needed. Built so Phase 2 can let phones and a kitchen screen connect to the laptop over Wi-Fi.
+
+**Planned for the later cloud move:** the laptop database must be easy to move or sync to the cloud in about 6 months. So from Phase 1: no data is ever deleted (bills, menu items), every schema change goes through EF migrations, and records keep created/updated times. The local laptop (or a local server) stays the main system for billing even after the cloud is added, so billing keeps working without internet.
 
 **Phase 2 and 3 (full system):**
 

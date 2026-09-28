@@ -2,6 +2,8 @@
 
 Billing and menu software for one new family restaurant in India. The restaurant opens on or before Navratri (about 11 Oct 2026), so **Phase 1 must be finished and tested by 6 Oct 2026**.
 
+The software runs **only on that laptop for about 5–6 months** (until about March 2027) and gets updates for fixes. After that, new features (kitchen tickets, waiter phones, reports) and cloud infrastructure (QR ordering, online payment, WhatsApp) are added, and the laptop's data is moved or synced to the cloud. Keep that move easy: never delete data, change the schema only through migrations, and keep the database logic behind the API.
+
 Full requirements: `docs/PRD.md` (source of truth; the .docx/.pdf in `docs/` are generated from it). Requirement IDs like `MENU-5` or `BILL-2` refer to that file.
 
 ## Current scope: Phase 1 only
