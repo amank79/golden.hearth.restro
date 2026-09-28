@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using RestaurantPos.Api.Data;
+using RestaurantPos.Api.Features.Billing;
 
 namespace RestaurantPos.Api.Features.Settings;
 
@@ -64,6 +65,7 @@ public static partial class SettingsEndpoints
             s.GstRateBp = dto.GstRateBp;
             s.BillFooter = (dto.BillFooter ?? "").Trim();
             await db.SaveChangesAsync();
+            await BillService.RecalculateOpenBillsAsync(db, s);
             return Results.Ok(SettingsDto.From(s));
         });
 

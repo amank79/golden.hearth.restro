@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using RestaurantPos.Api.Data;
+using RestaurantPos.Api.Features;
+using RestaurantPos.Api.Features.Billing;
 using RestaurantPos.Api.Features.Menu;
 using RestaurantPos.Api.Features.Settings;
 
@@ -9,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("Pos") ?? $"Data Source={DefaultDbPath()}";
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<RuleExceptionHandler>();
+builder.Services.AddScoped<BillService>();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddDbContext<PosDbContext>(o => o.UseSqlite(connectionString));
 
@@ -36,6 +40,7 @@ var api = app.MapGroup("/api");
 api.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 api.MapSettingsEndpoints();
 api.MapMenuEndpoints();
+api.MapBillEndpoints();
 
 app.MapFallback("/api/{**path}", () => Results.NotFound());
 app.MapFallbackToFile("index.html");

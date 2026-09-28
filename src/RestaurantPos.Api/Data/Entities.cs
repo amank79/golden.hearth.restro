@@ -8,6 +8,7 @@ public enum FoodType { Veg, NonVeg, Egg }
 public enum OrderType { DineIn, Takeaway }
 public enum BillStatus { Open, Paid, Cancelled }
 public enum PaymentMethod { Cash, Upi, Card }
+public enum DiscountKind { None, Percent, Amount }
 
 /// <summary>
 /// Base for every stored row. PublicId is a stable id for the future cloud sync (the local int Id is not
@@ -92,12 +93,20 @@ public class Bill : Entity
     public OrderType OrderType { get; set; }
     public string? TableLabel { get; set; }
     public BillStatus Status { get; set; } = BillStatus.Open;
+
+    // Tax mode used for this bill: follows the settings while the bill is open and is frozen when it is finalised,
+    // so a later change of tax mode never changes an issued bill.
+    public TaxMode TaxMode { get; set; } = TaxMode.Regular;
     public DateTimeOffset OpenedAt { get; set; }
     public DateTimeOffset? FinalisedAt { get; set; }
     public DateTimeOffset? SettledAt { get; set; }
 
     public long SubtotalPaise { get; set; }
     public long DiscountPaise { get; set; }
+
+    // What staff entered: a percent in basis points (1000 = 10%) or an amount in paise. DiscountPaise is the result.
+    public DiscountKind DiscountKind { get; set; } = DiscountKind.None;
+    public long DiscountValue { get; set; }
     public string? DiscountReason { get; set; }
     public long TaxablePaise { get; set; }
     public long CgstPaise { get; set; }
@@ -107,6 +116,10 @@ public class Bill : Entity
 
     public string? CancelReason { get; set; }
     public DateTimeOffset? CancelledAt { get; set; }
+
+    /// <summary>How many times the bill was printed. Every print after the first is marked "DUPLICATE".</summary>
+    public int PrintCount { get; set; }
+    public DateTimeOffset? LastPrintedAt { get; set; }
 
     public List<BillLine> Lines { get; set; } = [];
     public List<Payment> Payments { get; set; } = [];
@@ -122,9 +135,15 @@ public class BillLine : Entity
     public string ItemName { get; set; } = "";
     public string VariantName { get; set; } = "";
     public long UnitPricePaise { get; set; }
+
+    /// <summary>GST rate copied from the dish (or the restaurant default) when the line was added.</summary>
+    public int GstRateBp { get; set; }
     public int Qty { get; set; }
     public string? Note { get; set; }
     public long LineTotalPaise { get; set; }
+
+    /// <summary>Set when the line is taken off an open bill. The row is kept (never deleted) for the record.</summary>
+    public DateTimeOffset? RemovedAt { get; set; }
 }
 
 public class Payment : Entity

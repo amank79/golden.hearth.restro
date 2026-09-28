@@ -2,8 +2,6 @@ using RestaurantPos.Api.Data;
 
 namespace RestaurantPos.Api.Features.Billing;
 
-public enum DiscountKind { None, Percent, Amount }
-
 /// <summary>Bill discount: a percent (Value in basis points, 1000 = 10%) or an amount (Value in paise).</summary>
 public record Discount(DiscountKind Kind, long Value)
 {
