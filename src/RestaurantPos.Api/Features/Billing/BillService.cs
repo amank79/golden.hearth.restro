@@ -25,7 +25,7 @@ public class BillService(PosDbContext db, TimeProvider clock)
     public async Task<Bill> OpenAsync(OpenBillInput input)
     {
         var table = CleanTable(input);
-        if (table is not null && await db.Bills.AnyAsync(b => b.Status == BillStatus.Open && b.TableLabel == table))
+        if (table is not null && await TableBusyAsync(table, exceptBillId: null))
         {
             throw new RuleException($"Table {table} already has an open bill.");
         }
@@ -48,7 +48,7 @@ public class BillService(PosDbContext db, TimeProvider clock)
     {
         var bill = await EditableAsync(id);
         var table = CleanTable(input);
-        if (table is not null && await db.Bills.AnyAsync(b => b.Id != id && b.Status == BillStatus.Open && b.TableLabel == table))
+        if (table is not null && await TableBusyAsync(table, exceptBillId: id))
         {
             throw new RuleException($"Table {table} already has an open bill.");
         }
@@ -318,6 +318,13 @@ public class BillService(PosDbContext db, TimeProvider clock)
             Active(bill).Select(l => new CalcLine(l.UnitPricePaise, l.Qty, l.GstRateBp)),
             new Discount(bill.DiscountKind, bill.DiscountValue),
             bill.TaxMode);
+
+    /// <summary>Whether another open bill uses this table ("4a" and "4A" are the same table).</summary>
+    private Task<bool> TableBusyAsync(string table, int? exceptBillId)
+    {
+        var lower = table.ToLower();
+        return db.Bills.AnyAsync(b => b.Id != exceptBillId && b.Status == BillStatus.Open && b.TableLabel!.ToLower() == lower);
+    }
 
     /// <summary>Lines still on the bill (removed ones stay in the database with RemovedAt set).</summary>
     public static IEnumerable<BillLine> Active(Bill bill) => bill.Lines.Where(l => l.RemovedAt == null).OrderBy(l => l.Id);

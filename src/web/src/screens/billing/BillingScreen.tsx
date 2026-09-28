@@ -428,6 +428,8 @@ export function BillingScreen({ onPrint, onPreview }: Props) {
             void change(() => api.post<Bill>(`/bills/${bill.id}/payments`, { payments })).then((b) => {
               if (b) {
                 toast(`${billLabel(b)} paid: ${rupees(b.totalPaise)}.${changePaise > 0 ? ` Give back ${rupees(changePaise)} change.` : ''} Bill ${b.billNo}.`)
+                // Paid without printing first: print it now so the customer always gets a bill.
+                if (b.printCount === 0) void onPrint(b)
               }
             })
           }}

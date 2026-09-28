@@ -95,6 +95,7 @@ public class BillsApiTests(BillFixture f) : IClassFixture<BillFixture>, IAsyncLi
         var again = await _c.Post("/api/bills", new OpenBillInput(OrderType.DineIn, "T-dup"));
         Assert.Equal(HttpStatusCode.Conflict, again.StatusCode);
         Assert.Contains("already has an open bill", await again.ProblemTitle());
+        Assert.Equal(HttpStatusCode.Conflict, (await _c.Post("/api/bills", new OpenBillInput(OrderType.DineIn, "t-DUP"))).StatusCode);
     }
 
     [Fact]
