@@ -1,0 +1,3444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restaurant POS Demo</title>
+<style>
+  :root {
+    --bg: #F3F1EE;
+    --panel: #FFFFFF;
+    --ink: #2A1E17;
+    --muted: #6B5E55;
+    --line: #E4DDD6;
+    --soft: #F7F3EF;
+    --accent: #D9822B;
+    --accent-dark: #B8691A;
+    --dark: #2A1E17;
+    --green: #2E7D4F;
+    --green-soft: #E6F2EA;
+    --red: #B3261E;
+    --amber: #B7790E;
+    --amber-soft: #FBF1DC;
+    --blue: #2F5D8A;
+    --blue-soft: #E5EDF5;
+    --radius: 12px;
+    --font: "Segoe UI", system-ui, -apple-system, Roboto, "Noto Sans", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; }
+  button { font-family: inherit; font-size: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+  input { font-family: inherit; font-size: 15px; }
+  svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  .app { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { background: var(--dark); color: #EFE7DF; display: flex; flex-direction: column; padding: 18px 12px; gap: 4px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; }
+  .brand-logo { width: 38px; height: 38px; border-radius: 10px; background: var(--accent); color: var(--dark); display: grid; place-items: center; font-weight: 800; font-size: 18px; }
+  .brand b { display: block; font-size: 15px; }
+  .brand small { color: #BFB2A6; font-size: 12px; }
+  .nav-btn { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; color: #DCD1C6; font-weight: 600; text-align: left; }
+  .nav-btn:hover { background: #3A2C23; }
+  .nav-btn.active { background: var(--accent); color: var(--dark); }
+  .nav-btn .count { margin-left: auto; background: #FFFFFF22; border-radius: 99px; padding: 1px 8px; font-size: 12px; }
+  .nav-btn.active .count { background: #2A1E1722; }
+  .side-foot { margin-top: auto; padding: 12px; border-top: 1px solid #FFFFFF1A; font-size: 13px; color: #BFB2A6; line-height: 1.5; }
+  .side-foot b { color: #EFE7DF; }
+
+  /* Main */
+  main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .demo-strip { background: var(--amber-soft); color: #6A4A0C; font-size: 13.5px; padding: 8px 20px; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #EAD9B5; }
+  .demo-strip button { margin-left: auto; font-weight: 700; color: #6A4A0C; padding: 0 6px; }
+  .topbar { display: flex; align-items: center; gap: 14px; padding: 14px 24px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .topbar h1 { font-size: 21px; margin: 0; }
+  .topbar p { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+  .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 99px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .pill.ok { background: var(--green-soft); color: var(--green); }
+  .pill.ok::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .clock { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--soft); border: 1px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  .view { flex: 1; overflow: auto; padding: 20px 24px; min-height: 0; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 10px; font-weight: 700; background: var(--soft); border: 1px solid var(--line); }
+  .btn:hover { filter: brightness(0.97); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+  .btn.dark { background: var(--dark); border-color: var(--dark); color: #FFFFFF; }
+  .btn.green { background: var(--green); border-color: var(--green); color: #FFFFFF; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+
+  /* Veg / non-veg mark */
+  .vmark { width: 14px; height: 14px; border: 1.6px solid var(--green); border-radius: 3px; display: inline-grid; place-items: center; flex: none; }
+  .vmark::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .vmark.nv { border-color: var(--red); }
+  .vmark.nv::after { background: var(--red); }
+
+  /* Tables view */
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .legend { display: flex; gap: 16px; color: var(--muted); font-size: 13.5px; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .stat-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat-chip { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; min-width: 130px; }
+  .stat-chip b { font-size: 22px; display: block; }
+  .stat-chip span { color: var(--muted); font-size: 13px; }
+  .tables-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-top: 14px; }
+  .table-card { text-align: left; padding: 14px; border-radius: var(--radius); border: 2px solid var(--line); background: var(--panel); min-height: 128px; display: flex; flex-direction: column; gap: 4px; }
+  .table-card:hover { transform: translateY(-1px); box-shadow: 0 4px 14px #2A1E1714; }
+  .table-card .tno { font-size: 20px; font-weight: 800; }
+  .table-card .seats { color: var(--muted); font-size: 12.5px; }
+  .table-card .amt { margin-top: auto; font-weight: 800; font-size: 17px; }
+  .table-card .state { font-size: 12.5px; font-weight: 700; }
+  .table-card.free { border-color: #CFE3D6; }
+  .table-card.free .state { color: var(--green); }
+  .table-card.running { border-color: var(--accent); background: #FDF5EC; }
+  .table-card.running .state { color: var(--accent-dark); }
+  .table-card.billed { border-color: var(--blue); background: var(--blue-soft); }
+  .table-card.billed .state { color: var(--blue); }
+  .section-title { font-size: 15px; font-weight: 800; margin: 22px 0 4px; }
+  .quick-orders { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+
+  /* POS */
+  .pos { display: grid; grid-template-columns: 170px minmax(0, 1fr) 390px; gap: 16px; height: 100%; min-height: 0; }
+  .pos > * { min-width: 0; }
+  .pos-view { padding: 16px 20px; overflow: hidden; }
+  .cats { display: flex; flex-direction: column; gap: 6px; overflow: auto; }
+  .cat-btn { text-align: left; padding: 11px 12px; border-radius: 10px; font-weight: 600; background: var(--panel); border: 1px solid var(--line); white-space: nowrap; }
+  .cat-btn.active { background: var(--dark); color: #FFFFFF; border-color: var(--dark); }
+  .items-col { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .search { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; }
+  .search input { border: 0; outline: 0; padding: 11px 0; flex: 1; background: transparent; }
+  .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; overflow: auto; align-content: start; padding-bottom: 8px; }
+  .item-btn { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 6px; min-height: 124px; position: relative; }
+  .item-btn:hover { border-color: var(--accent); }
+  .item-btn .nm { font-weight: 700; line-height: 1.25; }
+  .item-btn .pr { margin-top: auto; font-weight: 800; color: var(--accent-dark); }
+  .item-btn .var { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .item-btn .qbadge { position: absolute; top: 8px; right: 8px; background: var(--accent); color: #FFFFFF; border-radius: 99px; font-size: 12px; font-weight: 800; min-width: 22px; height: 22px; display: grid; place-items: center; padding: 0 6px; }
+  .item-btn.na { opacity: .5; cursor: not-allowed; }
+  .item-btn.na .pr { color: var(--red); font-size: 13px; }
+
+  .order { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .order-head { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .order-head .t { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .order-head .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .seg { display: flex; background: var(--soft); border-radius: 10px; padding: 3px; margin-top: 10px; }
+  .seg button { flex: 1; padding: 7px; border-radius: 8px; font-weight: 600; font-size: 13.5px; color: var(--muted); }
+  .seg button.on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px #2A1E1726; }
+  .order-lines { flex: 1; overflow: auto; padding: 6px 16px; }
+  .ol { display: grid; grid-template-columns: 1fr auto 72px; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .ol .n { font-weight: 600; line-height: 1.25; }
+  .ol .n small { display: block; color: var(--muted); font-weight: 500; font-size: 12.5px; }
+  .ol .new { color: var(--accent-dark); font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; }
+  .ol .lt { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .qty { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .qty button { width: 30px; height: 30px; font-weight: 800; font-size: 17px; background: var(--soft); }
+  .qty span { width: 30px; text-align: center; font-weight: 700; }
+  .cust { display: grid; gap: 8px; padding: 10px 0; }
+  .cust input { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  .empty { color: var(--muted); text-align: center; padding: 36px 16px; line-height: 1.6; }
+  .totals { padding: 12px 16px; border-top: 1px solid var(--line); background: var(--soft); font-variant-numeric: tabular-nums; }
+  .totals div { display: flex; justify-content: space-between; padding: 2px 0; color: var(--muted); font-size: 14px; }
+  .totals .grand { color: var(--ink); font-size: 20px; font-weight: 800; padding-top: 6px; }
+  .totals .disc-btn { color: var(--accent-dark); font-weight: 700; font-size: 13px; }
+  .order-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 16px 16px; }
+  .order-actions .full { grid-column: 1 / -1; }
+  .pay-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; grid-column: 1 / -1; }
+  .pay-row .btn { padding: 11px 6px; }
+  .mobile-order-bar { display: none; }
+
+  /* Kitchen */
+  .kds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
+  .kds-col h3 { margin: 0 0 10px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .kds-col h3 .cnt { background: var(--panel); border: 1px solid var(--line); border-radius: 99px; padding: 0 9px; font-size: 13px; }
+  .kds-stack { display: flex; flex-direction: column; gap: 12px; }
+  .ticket { background: var(--panel); border-radius: 12px; border: 1px solid var(--line); overflow: hidden; }
+  .ticket-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-weight: 800; color: #FFFFFF; }
+  .ticket.new .ticket-head { background: var(--red); }
+  .ticket.preparing .ticket-head { background: var(--amber); }
+  .ticket.ready .ticket-head { background: var(--green); }
+  .ticket-head small { font-weight: 600; opacity: .92; }
+  .ticket ul { list-style: none; margin: 0; padding: 8px 14px; }
+  .ticket li { padding: 6px 0; border-bottom: 1px dashed var(--line); display: flex; gap: 10px; font-weight: 600; }
+  .ticket li:last-child { border-bottom: 0; }
+  .ticket li b { min-width: 30px; }
+  .ticket .foot { padding: 0 14px 14px; }
+  .ticket .foot .btn { width: 100%; }
+
+  /* Menu */
+  .menu-table { width: 100%; border-collapse: collapse; }
+  .menu-table th { text-align: left; color: var(--muted); font-size: 13px; font-weight: 700; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--soft); }
+  .menu-table td { padding: 11px 16px; border-bottom: 1px solid var(--line); }
+  .menu-table tr:last-child td { border-bottom: 0; }
+  .menu-table .nmcell { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .menu-table .muted { color: var(--muted); }
+  .switch { width: 46px; height: 26px; border-radius: 99px; background: #CFC6BE; position: relative; transition: background .15s; vertical-align: middle; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; transition: left .15s; box-shadow: 0 1px 2px #0003; }
+  .switch.on { background: var(--green); }
+  .switch.on::after { left: 23px; }
+  .sw-label { font-size: 13px; font-weight: 600; margin-left: 8px; }
+  .chipbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chip { padding: 7px 13px; border-radius: 99px; background: var(--panel); border: 1px solid var(--line); font-weight: 600; font-size: 13.5px; }
+  .chip.on { background: var(--dark); color: #FFFFFF; border-color: var(--dark); }
+
+  /* Reports */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .kpi { padding: 16px 18px; }
+  .kpi span { color: var(--muted); font-size: 13.5px; font-weight: 600; }
+  .kpi b { display: block; font-size: 28px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi small { color: var(--green); font-weight: 700; font-size: 12.5px; }
+  .rep-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin-top: 14px; }
+  .rep-card { padding: 16px 18px; }
+  .rep-card h3 { margin: 0 0 12px; font-size: 15px; }
+  .split { display: flex; height: 16px; border-radius: 99px; overflow: hidden; margin: 6px 0 14px; }
+  .split-legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .split-legend div { font-size: 13px; color: var(--muted); }
+  .split-legend b { display: block; color: var(--ink); font-size: 17px; font-variant-numeric: tabular-nums; }
+  .split-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+  .top-item { display: grid; grid-template-columns: 1fr 44px; gap: 4px 10px; align-items: center; margin-bottom: 10px; font-size: 14px; font-weight: 600; }
+  .top-item .bar { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--soft); overflow: hidden; }
+  .top-item .bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .top-item em { font-style: normal; text-align: right; color: var(--muted); }
+
+  /* Modal / toast */
+  .overlay { position: fixed; inset: 0; background: #2A1E1766; display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  .overlay.show { display: flex; }
+  .modal { background: var(--panel); border-radius: 16px; padding: 20px; width: min(420px, 100%); max-height: 92vh; overflow: auto; }
+  .modal h2 { margin: 0 0 4px; font-size: 19px; }
+  .modal p { margin: 0 0 14px; color: var(--muted); }
+  .variant-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .variant-opts button { padding: 16px; border: 2px solid var(--line); border-radius: 12px; font-weight: 700; font-size: 16px; }
+  .variant-opts button:hover { border-color: var(--accent); }
+  .variant-opts b { display: block; color: var(--accent-dark); margin-top: 4px; }
+  .receipt { font-family: "Consolas", "Courier New", monospace; font-size: 13.5px; background: #FFFFFF; border: 1px dashed #BDB3AA; padding: 16px; line-height: 1.45; color: #1E1E1E; }
+  .receipt .c { text-align: center; }
+  .receipt .rule { border-top: 1px dashed #8E8E8E; margin: 8px 0; }
+  .receipt table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .receipt td { padding: 1px 0; vertical-align: top; }
+  .receipt td.r { text-align: right; }
+  .receipt .big { font-size: 16px; font-weight: 700; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .modal-actions .btn { flex: 1; }
+  .toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); background: var(--dark); color: #FFFFFF; padding: 12px 18px; border-radius: 12px; font-weight: 600; opacity: 0; pointer-events: none; transition: all .2s; z-index: 60; max-width: calc(100% - 32px); box-shadow: 0 6px 20px #0003; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .bottomnav { display: none; }
+
+  /* QR codes page */
+  .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  .qr-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .qr-card .qr { width: 150px; height: 150px; }
+  .qr-card .qr svg { width: 100%; height: 100%; display: block; }
+  .qr-card b { font-size: 18px; }
+  .qr-card small { color: var(--muted); }
+  .note { background: var(--blue-soft); color: #1F3F5E; border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; margin: 0 0 14px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: .03em; }
+  .tag.paid { background: var(--green-soft); color: var(--green); }
+  .tag.qr { background: var(--blue-soft); color: var(--blue); }
+  .tk-note { padding: 8px 14px 0; font-size: 13px; font-weight: 700; color: var(--blue); }
+
+  /* Customer (QR) phone page */
+  .cust-wrap { display: none; }
+  body.customer .app, body.customer .bottomnav { display: none; }
+  body.customer .cust-wrap { display: flex; justify-content: center; background: var(--bg); }
+  .phone { width: 100%; max-width: 430px; height: 100vh; height: 100dvh; background: var(--panel); display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  @media (min-width: 700px) {
+    body.customer .cust-wrap { padding: 20px 0; min-height: 100vh; }
+    .phone { height: calc(100vh - 40px); border-radius: 30px; border: 9px solid var(--dark); box-shadow: 0 12px 40px #2A1E1733; }
+  }
+  .c-head { background: var(--dark); color: #FFFFFF; padding: 16px 18px 14px; }
+  .c-head .r { font-size: 19px; font-weight: 800; }
+  .c-head .t { margin-top: 6px; font-size: 13.5px; color: #E9DFD6; display: flex; gap: 8px; align-items: center; }
+  .c-head .t b { background: var(--accent); color: var(--dark); padding: 2px 9px; border-radius: 99px; }
+  .c-body { flex: 1; overflow: auto; padding: 12px 16px 96px; }
+  .c-cats { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 10px; margin-top: -12px; position: sticky; top: -12px; background: var(--panel); z-index: 2; }
+  .c-cats .chip { white-space: nowrap; }
+  .c-item { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); align-items: center; }
+  .c-item .info { flex: 1; min-width: 0; }
+  .c-item .nm { font-weight: 700; display: flex; gap: 8px; align-items: center; }
+  .c-item .pr { font-weight: 700; margin-top: 4px; color: var(--muted); font-size: 14px; }
+  .c-item .ds { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .add-btn { border: 1.5px solid var(--accent); color: var(--accent-dark); font-weight: 800; border-radius: 10px; padding: 7px 18px; background: #FFF8F0; }
+  .c-qty { display: flex; align-items: center; background: var(--accent); color: #FFFFFF; border-radius: 10px; overflow: hidden; flex: none; }
+  .c-qty button { width: 34px; height: 34px; color: #FFFFFF; font-weight: 800; font-size: 18px; }
+  .c-qty span { min-width: 22px; text-align: center; font-weight: 800; }
+  .c-bar { position: absolute; left: 12px; right: 12px; bottom: 14px; background: var(--accent); color: #FFFFFF; border-radius: 14px; padding: 15px 16px; display: flex; justify-content: space-between; font-weight: 800; font-size: 16px; box-shadow: 0 8px 20px #2A1E1740; }
+  .c-sec { font-weight: 800; margin: 18px 0 6px; font-size: 16px; }
+  .c-row { display: flex; justify-content: space-between; padding: 4px 0; color: var(--muted); font-size: 14px; gap: 10px; }
+  .c-row.total { color: var(--ink); font-weight: 800; font-size: 18px; border-top: 1px dashed var(--line); margin-top: 6px; padding-top: 10px; }
+  .pay-opt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 2px solid var(--line); border-radius: 12px; padding: 13px 14px; margin-bottom: 10px; }
+  .pay-opt.on { border-color: var(--accent); background: #FFF8F0; }
+  .pay-opt .dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); flex: none; }
+  .pay-opt.on .dot { border: 5px solid var(--accent); }
+  .pay-opt b { display: block; }
+  .pay-opt small { color: var(--muted); }
+  .c-note { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-family: inherit; font-size: 14px; resize: none; }
+  .c-center { text-align: center; padding: 26px 6px; }
+  .big-check { width: 84px; height: 84px; border-radius: 50%; background: var(--green); color: #FFFFFF; display: grid; place-items: center; margin: 6px auto 16px; font-size: 44px; font-weight: 800; }
+  .steps { display: flex; margin: 22px 0 8px; }
+  .steps div { flex: 1; text-align: center; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .steps div i { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--line); margin: 0 auto 6px; }
+  .steps div.on { color: var(--green); }
+  .steps div.on i { background: var(--green); }
+  .spinner { width: 46px; height: 46px; border-radius: 50%; border: 5px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; margin: 40px auto 20px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .upi-apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+  .upi-apps button { border: 1.5px solid var(--line); border-radius: 10px; padding: 12px 4px; font-weight: 700; font-size: 14px; }
+  .upi-apps button.on { border-color: var(--accent); background: #FFF8F0; }
+  .staff-link { color: #E9DFD6; font-size: 12.5px; text-decoration: underline; white-space: nowrap; }
+
+  @media (max-width: 1100px) {
+    .pos { grid-template-columns: 150px minmax(0, 1fr) 340px; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
+    .sidebar { display: none; }
+    main { min-height: 100vh; padding-bottom: 66px; }
+    .topbar { padding: 12px 16px; }
+    .topbar h1 { font-size: 18px; }
+    .topbar p, .topbar .avatar, .topbar .pill { display: none; }
+    .view { padding: 14px 16px; overflow: visible; }
+    .bottomnav { display: grid; grid-template-columns: repeat(6, 1fr); position: fixed; left: 0; right: 0; bottom: 0; background: var(--dark); z-index: 40; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+    .bottomnav button { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #CBBFB3; font-size: 10.5px; font-weight: 600; padding: 4px 0; }
+    .bottomnav button.active { color: var(--accent); }
+    .tables-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .pos-view { overflow: visible; padding: 12px 16px; }
+    .pos { grid-template-columns: minmax(0, 1fr); height: auto; }
+    .cats { flex-direction: row; overflow-x: auto; padding-bottom: 2px; }
+    .items-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; padding-bottom: 70px; }
+    .item-btn { min-height: 118px; }
+    body { overflow-x: hidden; }
+    .order { display: none; position: fixed; inset: 0 0 62px 0; z-index: 45; border-radius: 0; }
+    .order.open { display: flex; }
+    .mobile-order-bar { display: flex; position: fixed; left: 12px; right: 12px; bottom: 74px; z-index: 44; background: var(--accent); color: #FFFFFF; border-radius: 12px; padding: 13px 16px; font-weight: 700; justify-content: space-between; box-shadow: 0 6px 18px #2A1E1740; }
+    .order .close-order { display: inline-flex !important; }
+    .kds { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .kpi b { font-size: 22px; }
+    .rep-grid { grid-template-columns: 1fr; }
+    .menu-table .hide-m { display: none; }
+    .menu-table th, .menu-table td { padding: 10px; }
+    .demo-strip { padding: 8px 16px; }
+  }
+  .close-order { display: none !important; }
+
+  @media print {
+    body * { visibility: hidden; }
+    body:not(.print-qr) .receipt, body:not(.print-qr) .receipt * { visibility: visible; }
+    body:not(.print-qr) .receipt { position: absolute; left: 0; top: 0; width: 80mm; border: 0; }
+    body.print-qr .qr-grid, body.print-qr .qr-grid * { visibility: visible; }
+    body.print-qr .qr-grid { position: absolute; left: 0; top: 0; width: 100%; grid-template-columns: repeat(3, 1fr); }
+    body.print-qr .qr-card { break-inside: avoid; }
+    body.print-qr .qr-card .btn { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo" id="brandLogo">R</div>
+      <div><b id="brandName">Your Restaurant</b><small>Billing &amp; Management</small></div>
+    </div>
+    <div id="sideNav"></div>
+    <div class="side-foot">
+      Logged in as <b>Admin</b><br>
+      Counter PC · Main server
+    </div>
+  </aside>
+
+  <main>
+    <div class="demo-strip" id="demoStrip">
+      <span>👋 <b>Demo preview</b> with sample dishes and prices. Click around and try it. Nothing here is real.</span>
+      <button onclick="document.getElementById('demoStrip').remove()" aria-label="Close">✕</button>
+    </div>
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">Tables</h1>
+        <p id="pageSub"></p>
+      </div>
+      <div class="right">
+        <span class="pill ok" title="Runs on the restaurant's own computer">Works without internet</span>
+        <span class="clock" id="clock"></span>
+        <span class="avatar">AD</span>
+      </div>
+    </header>
+    <div class="view" id="view"></div>
+  </main>
+</div>
+
+<nav class="bottomnav" id="bottomNav"></nav>
+
+<div class="overlay" id="overlay" onclick="if (event.target === this) closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="cust-wrap"><div class="phone" id="phone"></div></div>
+
+<script>
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
+
+</script>
+
+<script>
+// ---------- Settings you can change ----------
+const RESTAURANT = {
+  name: "Your Restaurant",
+  address: "Main Road, Your City",
+  phone: "98XXX XXXXX",
+  gstin: "GSTIN: XXXXXXXXXXXXXXX (sample)",
+};
+
+// ---------- Icons ----------
+const ICONS = {
+  tables: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  pos: '<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/>',
+  kitchen: '<path d="M6 13.5A4 4 0 1 1 8 6a4 4 0 0 1 8 0 4 4 0 1 1 2 7.5V20H6z"/><path d="M6 17h12"/>',
+  menu: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h7M8 11h5"/>',
+  reports: '<path d="M4 20V11M10 20V5M16 20v-7M21 20H3"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM21 14v.01M14 21h.01M17 21h4v-4"/>',
+};
+const icon = (n) => `<svg class="i" viewBox="0 0 24 24">${ICONS[n]}</svg>`;
+
+// ---------- Menu ----------
+const CATS = ["Starters", "Main Course", "Breads", "Rice & Biryani", "Drinks", "Desserts"];
+let nextId = 1;
+const M = (name, cat, price, veg, variants) => ({ id: nextId++, name, cat, price, veg, variants: variants || null, available: true });
+const MENU = [
+  M("Paneer Tikka", "Starters", 280, true),
+  M("Chicken Tikka", "Starters", 320, false),
+  M("Veg Spring Roll", "Starters", 180, true),
+  M("Chilli Paneer", "Starters", 260, true, [["Half", 160], ["Full", 260]]),
+  M("Crispy Corn", "Starters", 200, true),
+  M("Chicken 65", "Starters", 300, false, [["Half", 180], ["Full", 300]]),
+  M("Butter Chicken", "Main Course", 360, false, [["Half", 220], ["Full", 360]]),
+  M("Paneer Butter Masala", "Main Course", 290, true, [["Half", 180], ["Full", 290]]),
+  M("Dal Makhani", "Main Course", 240, true, [["Half", 150], ["Full", 240]]),
+  M("Kadai Paneer", "Main Course", 280, true),
+  M("Chicken Curry", "Main Course", 330, false, [["Half", 200], ["Full", 330]]),
+  M("Mix Veg", "Main Course", 220, true),
+  M("Tandoori Roti", "Breads", 30, true),
+  M("Butter Naan", "Breads", 60, true),
+  M("Garlic Naan", "Breads", 80, true),
+  M("Lachha Paratha", "Breads", 60, true),
+  M("Steamed Rice", "Rice & Biryani", 120, true),
+  M("Jeera Rice", "Rice & Biryani", 160, true),
+  M("Veg Biryani", "Rice & Biryani", 240, true),
+  M("Chicken Biryani", "Rice & Biryani", 320, false, [["Half", 200], ["Full", 320]]),
+  M("Masala Chaas", "Drinks", 60, true),
+  M("Sweet Lassi", "Drinks", 90, true),
+  M("Fresh Lime Soda", "Drinks", 80, true),
+  M("Cold Coffee", "Drinks", 120, true),
+  M("Soft Drink", "Drinks", 40, true),
+  M("Gulab Jamun", "Desserts", 80, true),
+  M("Rasmalai", "Desserts", 110, true),
+  M("Ice Cream", "Desserts", 90, true),
+];
+MENU.find((m) => m.name === "Rasmalai").available = false;
+const byName = (n) => MENU.find((m) => m.name === n);
+
+// ---------- Orders & tables ----------
+const minsAgo = (m) => Date.now() - m * 60000;
+const TABLES = Array.from({ length: 12 }, (_, i) => ({ no: i + 1, seats: [2, 4, 4, 6, 4, 2, 4, 4, 6, 2, 4, 8][i] }));
+const orders = {};
+let kotNo = 24, billNo = 1042, takeawayNo = 8, deliveryNo = 3;
+
+function line(name, variant, qty, sent) {
+  const m = byName(name);
+  const price = variant ? m.variants.find((v) => v[0] === variant)[1] : m.price;
+  return { mid: m.id, name, variant, price, qty, sent: sent === undefined ? qty : sent };
+}
+function seedOrder(key, label, type, ago, items, extra) {
+  orders[key] = Object.assign({ key, label, type, started: minsAgo(ago), items, discount: 0, billed: false, billNo: null, customer: { name: "", phone: "", address: "" } }, extra || {});
+}
+seedOrder("T2", "Table 2", "dine", 35, [line("Paneer Tikka", null, 1), line("Dal Makhani", "Full", 1), line("Butter Naan", null, 4), line("Sweet Lassi", null, 2)]);
+seedOrder("T4", "Table 4", "dine", 20, [line("Chicken Tikka", null, 1), line("Butter Chicken", "Full", 1), line("Garlic Naan", null, 3), line("Jeera Rice", null, 1), line("Soft Drink", null, 2, 0)]);
+seedOrder("T5", "Table 5", "dine", 50, [line("Veg Biryani", null, 2), line("Masala Chaas", null, 2), line("Gulab Jamun", null, 2)], { billed: true, billNo: 1041 });
+seedOrder("T7", "Table 7", "dine", 12, [line("Chicken Biryani", "Full", 2), line("Fresh Lime Soda", null, 2)]);
+seedOrder("T9", "Table 9", "dine", 4, [line("Kadai Paneer", null, 1), line("Tandoori Roti", null, 6), line("Steamed Rice", null, 1)].map((l) => Object.assign(l, { qr: true, paidOnline: true })), { paid: 609 });
+seedOrder("T11", "Table 11", "dine", 28, [line("Chilli Paneer", "Half", 1), line("Cold Coffee", null, 2)]);
+
+// ---------- Kitchen tickets ----------
+const tickets = [
+  { no: 19, label: "Table 2", created: minsAgo(18), status: "ready", items: [["Dal Makhani (Full)", 1], ["Butter Naan", 4]] },
+  { no: 20, label: "Takeaway #7", created: minsAgo(14), status: "ready", items: [["Veg Biryani", 2], ["Masala Chaas", 2]] },
+  { no: 21, label: "Table 11", created: minsAgo(9), status: "preparing", items: [["Chilli Paneer (Half)", 1], ["Cold Coffee", 2]] },
+  { no: 22, label: "Table 7", created: minsAgo(7), status: "preparing", items: [["Chicken Biryani (Full)", 2], ["Fresh Lime Soda", 2]] },
+  { no: 23, label: "Table 9", created: minsAgo(3), status: "new", src: "qr", paid: true, note: "Less spicy please", items: [["Kadai Paneer", 1], ["Tandoori Roti", 6], ["Steamed Rice", 1]] },
+];
+
+// ---------- Today's sales (sample) ----------
+const sales = {
+  total: 18640, orders: 41, cash: 4120, upi: 10140, card: 3140, online: 1240, cancelled: 1, qrOrders: 3,
+  hourly: { 11: 1850, 12: 3420, 13: 4980, 14: 3260, 15: 2130, 16: 3000 },
+  items: { "Butter Naan": 38, "Butter Chicken": 14, "Chicken Biryani": 12, "Paneer Tikka": 11, "Sweet Lassi": 10, "Dal Makhani": 9, "Tandoori Roti": 26, "Paneer Butter Masala": 8 },
+};
+
+// ---------- Helpers ----------
+const rs = (n) => "₹" + Math.round(n).toLocaleString("en-IN");
+const rs2 = (n) => "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const ago = (t) => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? "just now" : m + " min ago"; };
+const lineName = (l) => l.name + (l.variant ? ` (${l.variant})` : "");
+function totals(o) {
+  const sub = o.items.reduce((s, l) => s + l.price * l.qty, 0);
+  const disc = Math.round((sub * o.discount) / 100);
+  const taxable = sub - disc;
+  const cgst = Math.round(taxable * 2.5) / 100;
+  const sgst = cgst;
+  const raw = taxable + cgst + sgst;
+  const total = Math.round(raw);
+  return { sub, disc, taxable, cgst, sgst, round: total - raw, total };
+}
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 3200);
+}
+function showModal(html) { document.getElementById("modal").innerHTML = html; document.getElementById("overlay").classList.add("show"); }
+function closeModal() { document.getElementById("overlay").classList.remove("show"); }
+
+// ---------- Navigation ----------
+const VIEWS = [
+  { id: "tables", label: "Tables", icon: "tables", sub: "Tap a table to take or view its order" },
+  { id: "pos", label: "Billing", icon: "pos", sub: "Add dishes, send to kitchen, print bill, take payment" },
+  { id: "kitchen", label: "Kitchen", icon: "kitchen", sub: "Kitchen screen: orders appear here automatically" },
+  { id: "menu", label: "Menu", icon: "menu", sub: "Dishes, prices and what is available today" },
+  { id: "qr", label: "QR Codes", icon: "qr", sub: "One QR code per table. Customers scan it to see the menu, order and pay." },
+  { id: "reports", label: "Reports", icon: "reports", sub: "How today is going" },
+];
+let view = "tables", posKey = null, posCat = "All", posSearch = "", menuCat = "All", orderOpen = false, staffNotice = null, cust = null;
+
+function go(h) { if (location.hash.slice(1) === h) route(); else location.hash = h; }
+function route() {
+  const [v, arg] = location.hash.slice(1).split("/");
+  if (v === "menu-online") { enterCustomer(0); return; }
+  if (v === "order") {
+    const no = parseInt((arg || "").replace("T", ""), 10);
+    if (no >= 1 && no <= TABLES.length) { enterCustomer(no); return; }
+  }
+  document.body.classList.remove("customer");
+  if (v === "bill" && orders[arg]) { view = "pos"; posKey = arg; render(); printBill(); return; }
+  view = VIEWS.some((x) => x.id === v) ? v : "tables";
+  if (view === "pos" && arg && orders[arg]) posKey = arg;
+  orderOpen = false;
+  render();
+  if (staffNotice) { const msg = staffNotice; staffNotice = null; setTimeout(() => toast(msg), 250); }
+}
+window.addEventListener("hashchange", route);
+
+function renderNav() {
+  const activeKots = tickets.filter((t) => t.status !== "ready").length;
+  const running = Object.values(orders).filter((o) => o.type === "dine").length;
+  const count = { kitchen: activeKots, tables: running };
+  document.getElementById("sideNav").innerHTML = VIEWS.map((v) =>
+    `<button class="nav-btn ${view === v.id ? "active" : ""}" onclick="go('${v.id}')">${icon(v.icon)}${v.label}${count[v.id] ? `<span class="count">${count[v.id]}</span>` : ""}</button>`).join("");
+  document.getElementById("bottomNav").innerHTML = VIEWS.map((v) =>
+    `<button class="${view === v.id ? "active" : ""}" onclick="go('${v.id}')">${icon(v.icon)}${v.label}</button>`).join("");
+  const meta = VIEWS.find((x) => x.id === view);
+  document.getElementById("pageTitle").textContent = meta.label;
+  document.getElementById("pageSub").textContent = meta.sub;
+}
+
+function render() {
+  renderNav();
+  const el = document.getElementById("view");
+  el.className = "view" + (view === "pos" ? " pos-view" : "");
+  el.innerHTML = { tables: viewTables, pos: viewPOS, kitchen: viewKitchen, menu: viewMenu, qr: viewQR, reports: viewReports }[view]();
+  if (view === "pos") {
+    const s = document.getElementById("posSearch");
+    if (s && render.refocus) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+    render.refocus = false;
+  }
+}
+
+// ---------- Tables ----------
+function viewTables() {
+  const dine = TABLES.map((t) => ({ t, o: orders["T" + t.no] }));
+  const free = dine.filter((x) => !x.o).length;
+  const billed = dine.filter((x) => x.o && x.o.billed).length;
+  const running = dine.length - free - billed;
+  const others = Object.values(orders).filter((o) => o.type !== "dine");
+  return `
+  <div class="stat-chips">
+    <div class="stat-chip"><b>${free}</b><span>Free tables</span></div>
+    <div class="stat-chip"><b>${running}</b><span>Eating now</span></div>
+    <div class="stat-chip"><b>${billed}</b><span>Bill printed</span></div>
+    <div class="stat-chip"><b>${rs(sales.total)}</b><span>Today's sales</span></div>
+  </div>
+  <div class="row" style="justify-content:space-between">
+    <div class="legend">
+      <span><i style="background:#CFE3D6"></i>Free</span>
+      <span><i style="background:var(--accent)"></i>Eating now</span>
+      <span><i style="background:var(--blue)"></i>Bill printed, waiting for payment</span>
+    </div>
+  </div>
+  <div class="tables-grid">
+    ${dine.map(({ t, o }) => {
+      const st = !o ? "free" : o.billed ? "billed" : "running";
+      const label = { free: "Free", running: "Eating · " + (o ? ago(o.started) : ""), billed: "Bill printed" }[st];
+      return `<button class="table-card ${st}" onclick="openTable(${t.no})">
+        <span class="tno">T${t.no}</span>
+        <span class="seats">${t.seats} seats</span>
+        <span class="state">${label}</span>
+        ${o && o.paid ? `<span><span class="tag paid">Paid online ${rs(o.paid)}</span></span>` : o && o.items.some((l) => l.qr) ? `<span><span class="tag qr">QR order</span></span>` : ""}
+        <span class="amt">${o ? rs(totals(o).total) : ""}</span>
+      </button>`;
+    }).join("")}
+  </div>
+  <div class="section-title">Takeaway &amp; delivery</div>
+  <div class="quick-orders">
+    <button class="btn primary" onclick="newOrder('takeaway')">+ New takeaway</button>
+    <button class="btn primary" onclick="newOrder('delivery')">+ New delivery</button>
+    ${others.map((o) => `<button class="btn" onclick="openKey('${o.key}')">${o.label} · ${rs(totals(o).total)}</button>`).join("")}
+  </div>`;
+}
+function openTable(no) {
+  const key = "T" + no;
+  if (!orders[key]) orders[key] = { key, label: "Table " + no, type: "dine", started: Date.now(), items: [], discount: 0, billed: false, billNo: null, customer: { name: "", phone: "", address: "" } };
+  openKey(key);
+}
+function openKey(key) { posKey = key; go("pos/" + key); }
+function newOrder(type) {
+  const n = type === "takeaway" ? takeawayNo++ : deliveryNo++;
+  const key = (type === "takeaway" ? "TA" : "DL") + n;
+  orders[key] = { key, label: (type === "takeaway" ? "Takeaway #" : "Delivery #") + n, type, started: Date.now(), items: [], discount: 0, billed: false, billNo: null, customer: { name: "", phone: "", address: "" } };
+  openKey(key);
+}
+
+// ---------- POS ----------
+function viewPOS() {
+  const o = orders[posKey];
+  const cats = ["All", ...CATS];
+  const q = posSearch.trim().toLowerCase();
+  const items = MENU.filter((m) => (posCat === "All" || m.cat === posCat) && (!q || m.name.toLowerCase().includes(q)));
+  const inOrder = {};
+  if (o) o.items.forEach((l) => { inOrder[l.mid] = (inOrder[l.mid] || 0) + l.qty; });
+  const t = o ? totals(o) : null;
+  const itemCount = o ? o.items.reduce((s, l) => s + l.qty, 0) : 0;
+  return `
+  <div class="pos">
+    <div class="cats">
+      ${cats.map((c) => `<button class="cat-btn ${posCat === c ? "active" : ""}" onclick="posCat='${c}';render()">${c.replace("&", "&amp;")}</button>`).join("")}
+    </div>
+    <div class="items-col">
+      <label class="search">${icon("search")}<input id="posSearch" placeholder="Search dish… (e.g. paneer)" value="${esc(posSearch)}" oninput="posSearch=this.value;render.refocus=true;render()"></label>
+      <div class="items-grid">
+        ${items.map((m) => `
+          <button class="item-btn ${m.available ? "" : "na"}" onclick="tapItem(${m.id})">
+            ${inOrder[m.id] ? `<span class="qbadge">${inOrder[m.id]}</span>` : ""}
+            <span class="vmark ${m.veg ? "" : "nv"}" title="${m.veg ? "Veg" : "Non-veg"}"></span>
+            <span class="nm">${m.name}</span>
+            ${m.variants ? `<span class="var">Half / Full</span>` : ""}
+            <span class="pr">${m.available ? (m.variants ? rs(m.variants[0][1]) + " / " + rs(m.variants[1][1]) : rs(m.price)) : "Not available today"}</span>
+          </button>`).join("") || `<div class="empty">No dish found.</div>`}
+      </div>
+    </div>
+    <div class="order card ${orderOpen ? "open" : ""}">
+      ${o ? orderPanel(o, t) : `
+        <div class="empty">
+          <b style="color:var(--ink);font-size:16px">No order selected</b><br>
+          Pick a table, or start a takeaway or delivery order.<br><br>
+          <button class="btn dark" onclick="go('tables')">Pick a table</button>
+          <div class="row" style="justify-content:center;margin-top:10px">
+            <button class="btn" onclick="newOrder('takeaway')">+ Takeaway</button>
+            <button class="btn" onclick="newOrder('delivery')">+ Delivery</button>
+          </div>
+        </div>`}
+    </div>
+  </div>
+  ${o ? `<button class="mobile-order-bar" onclick="orderOpen=true;render()"><span>View order · ${itemCount} item${itemCount === 1 ? "" : "s"}</span><span>${rs(t.total)}</span></button>` : ""}`;
+}
+
+function orderPanel(o, t) {
+  const unsent = o.items.some((l) => l.qty > l.sent);
+  const has = o.items.length > 0;
+  const due = balanceDue(o, t);
+  const typeName = { dine: "Dine-in", takeaway: "Takeaway", delivery: "Delivery" }[o.type];
+  return `
+  <div class="order-head">
+    <div class="t">${o.label}
+      <span class="pill" style="background:${o.billed ? "var(--blue-soft)" : "var(--soft)"};color:${o.billed ? "var(--blue)" : "var(--muted)"}">${o.billed ? "Bill printed" : typeName}</span>
+      <button class="btn close-order" style="margin-left:auto;padding:6px 12px" onclick="orderOpen=false;render()">Back to menu</button>
+    </div>
+    <div class="sub">Started ${ago(o.started)} · Waiter: Suresh</div>
+  </div>
+  <div class="order-lines">
+    ${o.type === "delivery" ? `
+      <div class="cust">
+        <input placeholder="Customer name" value="${esc(o.customer.name)}" oninput="orders['${o.key}'].customer.name=this.value">
+        <input placeholder="Mobile number" value="${esc(o.customer.phone)}" oninput="orders['${o.key}'].customer.phone=this.value">
+        <input placeholder="Delivery address" value="${esc(o.customer.address)}" oninput="orders['${o.key}'].customer.address=this.value">
+      </div>` : ""}
+    ${has ? o.items.map((l, i) => `
+      <div class="ol">
+        <div class="n">${l.name}<small>${l.variant ? l.variant + " · " : ""}${rs(l.price)} each ${l.qty > l.sent ? `· <span class="new">new</span>` : ""}${l.qr ? ` <span class="tag ${l.paidOnline ? "paid" : "qr"}">QR${l.paidOnline ? " · paid" : ""}</span>` : ""}</small></div>
+        <div class="qty"><button onclick="changeQty(${i},-1)">−</button><span>${l.qty}</span><button onclick="changeQty(${i},1)">+</button></div>
+        <div class="lt">${rs(l.price * l.qty)}</div>
+      </div>`).join("") : `<div class="empty">Tap dishes on the left to add them to this order.</div>`}
+  </div>
+  <div class="totals">
+    <div><span>Items total</span><span>${rs2(t.sub)}</span></div>
+    <div><span>Discount ${o.discount ? `(${o.discount}%)` : ""} <button class="disc-btn" onclick="toggleDiscount()">${o.discount ? "Remove" : "+ Add 10%"}</button></span><span>${t.disc ? "− " + rs2(t.disc) : "—"}</span></div>
+    <div><span>CGST 2.5%</span><span>${rs2(t.cgst)}</span></div>
+    <div><span>SGST 2.5%</span><span>${rs2(t.sgst)}</span></div>
+    <div class="grand"><span>${o.paid ? "Bill total" : "Total to pay"}</span><span>${rs(t.total)}</span></div>
+    ${o.paid ? `<div><span>Paid online (QR)</span><span>− ${rs(o.paid)}</span></div><div class="grand"><span>Balance to pay</span><span>${rs(due)}</span></div>` : ""}
+  </div>
+  <div class="order-actions">
+    <button class="btn dark" ${unsent ? "" : "disabled"} onclick="sendKOT()">Send to kitchen</button>
+    <button class="btn" ${has ? "" : "disabled"} onclick="printBill()">Print bill</button>
+    ${has && o.paid && due === 0 ? `<button class="btn green full" onclick="pay('none')">Close table · fully paid online</button>` : `
+    <div class="pay-row">
+      <button class="btn green" ${has ? "" : "disabled"} onclick="pay('cash')">Cash</button>
+      <button class="btn green" ${has ? "" : "disabled"} onclick="pay('upi')">UPI</button>
+      <button class="btn green" ${has ? "" : "disabled"} onclick="pay('card')">Card</button>
+    </div>`}
+  </div>`;
+}
+
+function tapItem(id) {
+  const m = MENU.find((x) => x.id === id);
+  if (!m.available) { toast(m.name + " is marked not available today (see Menu)."); return; }
+  if (!orders[posKey]) { toast("First pick a table, or start a takeaway / delivery order."); return; }
+  if (m.variants) {
+    showModal(`<h2>${m.name}</h2><p>Choose the plate size</p>
+      <div class="variant-opts">${m.variants.map(([v, p]) => `<button onclick="addLine(${m.id},'${v}');closeModal()">${v}<b>${rs(p)}</b></button>`).join("")}</div>
+      <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button></div>`);
+    return;
+  }
+  addLine(id, null);
+}
+function addLine(id, variant) {
+  const o = orders[posKey];
+  const m = MENU.find((x) => x.id === id);
+  const price = variant ? m.variants.find((v) => v[0] === variant)[1] : m.price;
+  const l = o.items.find((x) => x.mid === id && x.variant === variant && !x.qr);
+  if (l) l.qty++; else o.items.push({ mid: id, name: m.name, variant, price, qty: 1, sent: 0 });
+  o.billed = false;
+  render();
+}
+function changeQty(i, d) {
+  const o = orders[posKey];
+  const l = o.items[i];
+  l.qty += d;
+  if (l.qty < l.sent) l.sent = l.qty;
+  if (l.qty <= 0) o.items.splice(i, 1);
+  o.billed = false;
+  render();
+}
+function toggleDiscount() { const o = orders[posKey]; o.discount = o.discount ? 0 : 10; render(); }
+function sendKOT(silent) {
+  const o = orders[posKey];
+  const newItems = o.items.filter((l) => l.qty > l.sent).map((l) => [lineName(l), l.qty - l.sent]);
+  if (!newItems.length) return null;
+  o.items.forEach((l) => { l.sent = l.qty; });
+  const no = kotNo++;
+  tickets.push({ no, label: o.label, created: Date.now(), status: "new", items: newItems });
+  if (!silent) { toast(`KOT #${no} sent to the kitchen ✓`); render(); }
+  return no;
+}
+function printBill() {
+  const o = orders[posKey];
+  if (!o || !o.items.length) return;
+  const kot = sendKOT(true);
+  o.billed = true;
+  if (!o.billNo) o.billNo = billNo++;
+  render();
+  const t = totals(o);
+  const d = new Date();
+  const date = d.toLocaleDateString("en-IN") + " " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  showModal(`
+    <h2>Bill preview</h2><p>This is how the printed bill will look${kot ? ` (new items also sent to kitchen as KOT #${kot})` : ""}.</p>
+    <div class="receipt">
+      <div class="c"><span class="big">${RESTAURANT.name.toUpperCase()}</span><br>${RESTAURANT.address}<br>Ph: ${RESTAURANT.phone}<br>${RESTAURANT.gstin}</div>
+      <div class="rule"></div>
+      <table><tr><td>Bill No: ${o.billNo}</td><td class="r">${o.label}</td></tr><tr><td colspan="2">Date: ${date}</td></tr></table>
+      <div class="rule"></div>
+      <table>
+        <tr><td><b>Item</b></td><td class="r"><b>Qty</b></td><td class="r"><b>Rate</b></td><td class="r"><b>Amt</b></td></tr>
+        ${o.items.map((l) => `<tr><td>${lineName(l)}</td><td class="r">${l.qty}</td><td class="r">${l.price}</td><td class="r">${(l.price * l.qty).toFixed(2)}</td></tr>`).join("")}
+      </table>
+      <div class="rule"></div>
+      <table>
+        <tr><td>Sub total</td><td class="r">${t.sub.toFixed(2)}</td></tr>
+        ${t.disc ? `<tr><td>Discount (${o.discount}%)</td><td class="r">-${t.disc.toFixed(2)}</td></tr>` : ""}
+        <tr><td>CGST @2.5%</td><td class="r">${t.cgst.toFixed(2)}</td></tr>
+        <tr><td>SGST @2.5%</td><td class="r">${t.sgst.toFixed(2)}</td></tr>
+        <tr><td>Round off</td><td class="r">${t.round.toFixed(2)}</td></tr>
+        <tr class="big"><td>TOTAL</td><td class="r">${rs(t.total)}</td></tr>
+        ${o.paid ? `<tr><td>Paid online</td><td class="r">-${o.paid.toFixed(2)}</td></tr><tr class="big"><td>BALANCE</td><td class="r">${rs(balanceDue(o, t))}</td></tr>` : ""}
+      </table>
+      <div class="rule"></div>
+      <div class="c">Thank you! Please visit again.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn dark" onclick="window.print()">Print</button>
+      <button class="btn green" onclick="toast('In the real software the bill goes to the customer on WhatsApp.')">Send on WhatsApp</button>
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>`);
+}
+function pay(method) {
+  const o = orders[posKey];
+  if (!o || !o.items.length) return;
+  sendKOT(true);
+  const t = totals(o);
+  const due = balanceDue(o, t);
+  recordSale(due, method === "none" ? null : method);
+  sales.orders += 1;
+  o.items.filter((l) => !(l.qr && l.paidOnline)).forEach((l) => { sales.items[l.name] = (sales.items[l.name] || 0) + l.qty; });
+  delete orders[o.key];
+  posKey = null;
+  const how = { cash: "cash", upi: "UPI", card: "card" }[method];
+  const done = o.type === "dine" ? o.label + " is free now." : o.label + " done.";
+  toast(due > 0 ? `${rs(due)} received by ${how}. ${done}` : `Already paid online. ${done}`);
+  go("tables");
+}
+
+// ---------- Kitchen ----------
+function viewKitchen() {
+  const cols = [
+    { st: "new", title: "New orders", btn: "Start cooking" },
+    { st: "preparing", title: "Cooking", btn: "Food ready" },
+    { st: "ready", title: "Ready to serve", btn: "Served ✓" },
+  ];
+  return `<div class="kds">${cols.map((c) => {
+    const list = tickets.filter((t) => t.status === c.st);
+    return `<div class="kds-col"><h3>${c.title} <span class="cnt">${list.length}</span></h3><div class="kds-stack">
+      ${list.map((t) => `
+        <div class="ticket ${t.status}">
+          <div class="ticket-head"><span>${t.label}</span><small>KOT #${t.no} · ${ago(t.created)}</small></div>
+          ${t.src === "qr" ? `<div class="tk-note">📱 QR order · ${t.paid ? "Paid online" : "Pay at counter"}</div>` : ""}
+          ${t.note ? `<div class="tk-note" style="color:var(--accent-dark)">Note: ${esc(t.note)}</div>` : ""}
+          <ul>${t.items.map(([n, q]) => `<li><b>${q} ×</b>${n}</li>`).join("")}</ul>
+          <div class="foot"><button class="btn ${c.st === "ready" ? "green" : "dark"}" onclick="advance(${t.no})">${c.btn}</button></div>
+        </div>`).join("") || `<div class="empty card">Nothing here</div>`}
+    </div></div>`;
+  }).join("")}</div>`;
+}
+function advance(no) {
+  const t = tickets.find((x) => x.no === no);
+  if (t.status === "new") t.status = "preparing";
+  else if (t.status === "preparing") { t.status = "ready"; toast(`${t.label}: food is ready. Waiter is notified.`); }
+  else { tickets.splice(tickets.indexOf(t), 1); toast(`${t.label}: served.`); }
+  render();
+}
+
+// ---------- Menu ----------
+function viewMenu() {
+  const list = MENU.filter((m) => menuCat === "All" || m.cat === menuCat);
+  return `
+  <div class="row" style="justify-content:space-between;margin-bottom:14px">
+    <div class="chipbar" style="margin:0">${["All", ...CATS].map((c) => `<button class="chip ${menuCat === c ? "on" : ""}" onclick="menuCat='${c}';render()">${c.replace("&", "&amp;")}</button>`).join("")}</div>
+    <button class="btn primary" onclick="toast('In the real software you can add new dishes, prices and photos here.')">+ Add dish</button>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <table class="menu-table">
+      <tr><th>Dish</th><th class="hide-m">Category</th><th>Price</th><th>Available today</th></tr>
+      ${list.map((m) => `
+        <tr>
+          <td><span class="nmcell"><span class="vmark ${m.veg ? "" : "nv"}"></span>${m.name}</span></td>
+          <td class="hide-m muted">${m.cat}</td>
+          <td>${m.variants ? m.variants.map(([v, p]) => `${v} ${rs(p)}`).join(" · ") : rs(m.price)}</td>
+          <td><button class="switch ${m.available ? "on" : ""}" onclick="toggleAvail(${m.id})" aria-label="Available"></button><span class="sw-label" style="color:${m.available ? "var(--green)" : "var(--red)"}">${m.available ? "Yes" : "No"}</span></td>
+        </tr>`).join("")}
+    </table>
+  </div>`;
+}
+function toggleAvail(id) {
+  const m = MENU.find((x) => x.id === id);
+  m.available = !m.available;
+  toast(`${m.name} is now ${m.available ? "available" : "NOT available"}. Billing screen updated.`);
+  render();
+}
+
+// ---------- Reports ----------
+function viewReports() {
+  const avg = sales.orders ? sales.total / sales.orders : 0;
+  const running = Object.values(orders).reduce((s, o) => s + totals(o).total, 0);
+  const pct = (v) => (sales.total ? (v / sales.total) * 100 : 0);
+  const hours = [];
+  for (let h = 11; h <= 23; h++) hours.push(h);
+  const maxH = Math.max(1000, ...hours.map((h) => sales.hourly[h] || 0));
+  const W = 560, H = 320, bw = W / hours.length;
+  const bars = hours.map((h, i) => {
+    const v = sales.hourly[h] || 0;
+    const bh = (v / maxH) * (H - 30);
+    const x = i * bw + 6, y = H - 22 - bh;
+    const lbl = h === 12 ? "12p" : h > 12 ? h - 12 + "p" : h + "a";
+    return `<rect x="${x}" y="${y}" width="${bw - 12}" height="${bh}" rx="4" fill="#D9822B"><title>${lbl}: ${rs(v)}</title></rect>
+      <text x="${x + (bw - 12) / 2}" y="${H - 6}" text-anchor="middle" font-size="12" fill="#6B5E55">${lbl}</text>`;
+  }).join("");
+  const top = Object.entries(sales.items).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const topMax = top.length ? top[0][1] : 1;
+  return `
+  <div class="kpis">
+    <div class="card kpi"><span>Today's sales</span><b>${rs(sales.total)}</b><small>▲ 12% vs last Sunday</small></div>
+    <div class="card kpi"><span>Bills today</span><b>${sales.orders}</b></div>
+    <div class="card kpi"><span>Average bill</span><b>${rs(avg)}</b></div>
+    <div class="card kpi"><span>Running tables (not paid yet)</span><b>${rs(running)}</b></div>
+  </div>
+  <div class="rep-grid">
+    <div class="card rep-card">
+      <h3>Sales by hour</h3>
+      <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Sales by hour">${bars}</svg>
+    </div>
+    <div class="card rep-card">
+      <h3>How customers paid</h3>
+      <div class="split">
+        <i style="width:${pct(sales.cash)}%;background:#2E7D4F"></i>
+        <i style="width:${pct(sales.upi)}%;background:#D9822B"></i>
+        <i style="width:${pct(sales.card)}%;background:#2F5D8A"></i>
+        <i style="width:${pct(sales.online)}%;background:#2A1E17"></i>
+      </div>
+      <div class="split-legend">
+        <div><i style="background:#2E7D4F"></i>Cash<b>${rs(sales.cash)}</b></div>
+        <div><i style="background:#D9822B"></i>UPI<b>${rs(sales.upi)}</b></div>
+        <div><i style="background:#2F5D8A"></i>Card<b>${rs(sales.card)}</b></div>
+        <div><i style="background:#2A1E17"></i>Online (QR)<b>${rs(sales.online)}</b></div>
+      </div>
+      <h3 style="margin-top:22px">Best-selling dishes today</h3>
+      ${top.map(([n, q]) => `<div class="top-item"><span>${n}</span><em>${q}</em><div class="bar"><i style="width:${(q / topMax) * 100}%"></i></div></div>`).join("")}
+    </div>
+  </div>
+  <p style="color:var(--muted);font-size:13px;margin-top:14px">QR orders today: ${sales.qrOrders} · Cancelled bills today: ${sales.cancelled} · The owner can also see these numbers on their phone.</p>`;
+}
+
+// ---------- Shared helpers ----------
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function balanceDue(o, t) { if (!o.paid) return t.total; const d = t.total - o.paid; return d <= 1 ? 0 : d; }
+function recordSale(amount, method) {
+  if (amount <= 0) return;
+  sales.total += amount;
+  if (method) sales[method] += amount;
+  const h = Math.min(23, Math.max(11, new Date().getHours()));
+  sales.hourly[h] = (sales.hourly[h] || 0) + amount;
+}
+
+// ---------- QR codes (staff side) ----------
+function tableUrl(no) { return location.href.split("#")[0] + "#order/T" + no; }
+function qrSvg(text) { const q = qrcode(0, "M"); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 2 }); }
+function viewQR() {
+  const online = location.protocol.startsWith("http");
+  return `
+  <div class="note">${online
+    ? "<b>Try it:</b> scan any code below with your phone camera. The menu opens on your phone and you can order and pay (demo payment, no real money)."
+    : "<b>How it works:</b> each table gets its own QR code sticker. The customer scans it, sees the menu, orders and pays online, and the order goes straight to the kitchen.<br>These codes will open on phones once this demo is put online (for example on Netlify). For now, click <b>Try as customer</b>."}</div>
+  <div class="row" style="justify-content:space-between;margin-bottom:14px">
+    <span style="color:var(--muted)">In the real software each code carries a secret key, so nobody can order from outside the restaurant.</span>
+    <button class="btn primary" onclick="printQR()">Print all QR codes</button>
+  </div>
+  <div class="qr-grid">
+    ${TABLES.map((t) => `
+      <div class="qr-card">
+        <b>Table ${t.no}</b>
+        <div class="qr">${qrSvg(tableUrl(t.no))}</div>
+        <small>Scan to see the menu, order &amp; pay</small>
+        <button class="btn" onclick="go('order/T${t.no}')">Try as customer</button>
+      </div>`).join("")}
+  </div>
+  <div class="section-title" style="margin-top:26px">Menu for people at home</div>
+  <p style="color:var(--muted);margin:4px 0 12px">View-only menu with no ordering. Put this link or QR code on Google Maps, Instagram, WhatsApp, visiting cards and posters.</p>
+  <div class="qr-grid">
+    <div class="qr-card">
+      <b>Our Menu</b>
+      <div class="qr">${qrSvg(location.href.split("#")[0] + "#menu-online")}</div>
+      <small>Scan to see our menu</small>
+      <button class="btn" onclick="go('menu-online')">Open home menu</button>
+    </div>
+  </div>`;
+}
+function printQR() { document.body.classList.add("print-qr"); window.print(); document.body.classList.remove("print-qr"); }
+
+// ---------- Customer phone page (after scanning the table QR) ----------
+function enterCustomer(no) {
+  if (!cust || cust.table !== no) cust = { table: no, cart: [], step: "menu", cat: "All", vegOnly: false, pay: "online", app: "GPay", note: "", last: null, processing: false };
+  document.body.classList.add("customer");
+  closeModal();
+  renderCustomer();
+}
+function renderCustomer() {
+  const el = document.getElementById("phone");
+  const prev = el.querySelector(".c-body");
+  const keep = prev && cust.shown === cust.step ? prev.scrollTop : 0;
+  const head = `<div class="c-head">
+    <div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="r">${esc(RESTAURANT.name)}</span><button class="staff-link" onclick="go('qr')">Staff view (demo)</button></div>
+    <div class="t">${cust.table ? `<b>Table ${cust.table}</b><span>Order from your phone &amp; pay online</span>` : `<b>Menu</b><span>${esc(RESTAURANT.address)}</span>`}</div></div>`;
+  el.innerHTML = head + { menu: custMenu, cart: custCart, pay: custPay, done: custDone }[cust.step]();
+  const body = el.querySelector(".c-body");
+  if (body) body.scrollTop = keep;
+  cust.shown = cust.step;
+}
+const cartCount = () => cust.cart.reduce((s, c) => s + c.qty, 0);
+const cartTotals = () => totals({ items: cust.cart, discount: 0 });
+function custStep(step) { cust.step = step; renderCustomer(); }
+function custAdd(id, variant) {
+  const m = MENU.find((x) => x.id === id);
+  const price = variant ? m.variants.find((v) => v[0] === variant)[1] : m.price;
+  const c = cust.cart.find((x) => x.mid === id && x.variant === variant);
+  if (c) c.qty++; else cust.cart.push({ mid: id, name: m.name, variant, price, qty: 1 });
+  renderCustomer();
+}
+function custTap(id) {
+  const m = MENU.find((x) => x.id === id);
+  if (!m.available) return;
+  if (!m.variants) { custAdd(id, null); return; }
+  showModal(`<h2>${m.name}</h2><p>Choose the plate size</p>
+    <div class="variant-opts">${m.variants.map(([v, p]) => `<button onclick="custAdd(${m.id},'${v}');closeModal()">${v}<b>${rs(p)}</b></button>`).join("")}</div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button></div>`);
+}
+function custQty(i, d) {
+  const c = cust.cart[i];
+  c.qty += d;
+  if (c.qty <= 0) cust.cart.splice(i, 1);
+  if (!cust.cart.length) cust.step = "menu";
+  renderCustomer();
+}
+function custQtyItem(id, d) {
+  const i = cust.cart.findIndex((c) => c.mid === id && !c.variant);
+  if (i >= 0) custQty(i, d); else if (d > 0) custAdd(id, null);
+}
+function callWaiter() {
+  toast(`A waiter is coming to Table ${cust.table}.`);
+  staffNotice = `Table ${cust.table} is calling a waiter.`;
+}
+function custMenu() {
+  const list = MENU.filter((m) => (cust.cat === "All" || m.cat === cust.cat) && (!cust.vegOnly || m.veg));
+  const groups = CATS.map((c) => [c, list.filter((m) => m.cat === c)]).filter(([, l]) => l.length);
+  const inCart = (m) => cust.cart.filter((c) => c.mid === m.id).reduce((s, c) => s + c.qty, 0);
+  const n = cartCount();
+  return `<div class="c-body">
+    <div class="c-cats">
+      <button class="chip ${cust.vegOnly ? "on" : ""}" onclick="cust.vegOnly=!cust.vegOnly;renderCustomer()">Veg only</button>
+      ${["All", ...CATS].map((c) => `<button class="chip ${cust.cat === c ? "on" : ""}" onclick="cust.cat='${c}';renderCustomer()">${c.replace("&", "&amp;")}</button>`).join("")}
+    </div>
+    ${cust.table ? `<div class="row" style="justify-content:space-between;margin-top:4px">
+      <span style="color:var(--muted);font-size:13.5px">Tap ADD, then view your cart</span>
+      <button class="btn" style="padding:7px 12px;font-size:13.5px" onclick="callWaiter()">🔔 Call waiter</button>
+    </div>` : `<div class="row" style="margin-top:4px">
+      <button class="btn primary" style="flex:1" onclick="toast('In the real software this calls the restaurant: ${RESTAURANT.phone}')">📞 Call us</button>
+      <button class="btn" style="flex:1" onclick="toast('In the real software this opens Google Maps directions.')">📍 Directions</button>
+    </div>
+    <p style="color:var(--muted);font-size:13px;margin:10px 0 0">Today's menu. Prices are before GST.</p>`}
+    ${groups.map(([c, items]) => `<div class="c-sec">${c.replace("&", "&amp;")}</div>` + items.map((m) => {
+      const q = inCart(m);
+      let ctl;
+      if (!m.available) ctl = `<span style="color:var(--red);font-size:13px;font-weight:700">Not available</span>`;
+      else if (!cust.table) ctl = "";
+      else if (m.variants) ctl = `<div style="text-align:center"><button class="add-btn" onclick="custTap(${m.id})">ADD</button>${q ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${q} in cart</div>` : ""}</div>`;
+      else if (q) ctl = `<div class="c-qty"><button onclick="custQtyItem(${m.id},-1)">−</button><span>${q}</span><button onclick="custQtyItem(${m.id},1)">+</button></div>`;
+      else ctl = `<button class="add-btn" onclick="custTap(${m.id})">ADD</button>`;
+      return `<div class="c-item" style="${m.available ? "" : "opacity:.5"}">
+        <div class="info"><div class="nm"><span class="vmark ${m.veg ? "" : "nv"}"></span>${m.name}</div>
+        <div class="pr">${m.variants ? m.variants.map(([v, p]) => `${v} ${rs(p)}`).join(" · ") : rs(m.price)}</div></div>${ctl}</div>`;
+    }).join("")).join("")}
+  </div>
+  ${n && cust.table ? `<button class="c-bar" onclick="custStep('cart')"><span>${n} item${n === 1 ? "" : "s"} · ${rs(cartTotals().sub)}</span><span>View cart →</span></button>` : ""}`;
+}
+function custCart() {
+  const t = cartTotals();
+  const online = cust.pay === "online";
+  return `<div class="c-body">
+    <button class="btn" style="padding:7px 12px" onclick="custStep('menu')">← Back to menu</button>
+    <div class="c-sec">Your order</div>
+    ${cust.cart.map((c, i) => `<div class="c-item">
+      <div class="info"><div class="nm">${lineName(c)}</div><div class="ds">${rs(c.price)} each</div></div>
+      <div class="c-qty"><button onclick="custQty(${i},-1)">−</button><span>${c.qty}</span><button onclick="custQty(${i},1)">+</button></div>
+      <div style="width:62px;text-align:right;font-weight:800">${rs(c.price * c.qty)}</div></div>`).join("")}
+    <div class="c-sec">Any special request?</div>
+    <textarea class="c-note" rows="2" placeholder="e.g. less spicy, no onion" oninput="cust.note=this.value">${esc(cust.note)}</textarea>
+    <div class="c-sec">Bill</div>
+    <div class="c-row"><span>Items total</span><span>${rs2(t.sub)}</span></div>
+    <div class="c-row"><span>CGST 2.5%</span><span>${rs2(t.cgst)}</span></div>
+    <div class="c-row"><span>SGST 2.5%</span><span>${rs2(t.sgst)}</span></div>
+    <div class="c-row total"><span>Total</span><span>${rs(t.total)}</span></div>
+    <div class="c-sec">How would you like to pay?</div>
+    <button class="pay-opt ${online ? "on" : ""}" onclick="cust.pay='online';renderCustomer()"><span class="dot"></span><span><b>Pay now online</b><small>UPI (GPay, PhonePe, Paytm) or card</small></span></button>
+    <button class="pay-opt ${online ? "" : "on"}" onclick="cust.pay='counter';renderCustomer()"><span class="dot"></span><span><b>Pay later at the counter</b><small>Cash, UPI or card after eating</small></span></button>
+  </div>
+  <button class="c-bar" onclick="${online ? "custStep('pay')" : "placeCustomerOrder(false)"}"><span>${online ? "Pay " + rs(t.total) : "Place order"}</span><span>→</span></button>`;
+}
+function custPay() {
+  const t = cartTotals();
+  const via = cust.app === "Card" ? "by card" : "with " + cust.app;
+  if (cust.processing) return `<div class="c-body"><div class="c-center"><div class="spinner"></div><b>Waiting for payment…</b><p style="color:var(--muted)">Approve ${rs(t.total)} ${via}.</p></div></div>`;
+  return `<div class="c-body">
+    <button class="btn" style="padding:7px 12px" onclick="custStep('cart')">← Back</button>
+    <div class="c-center" style="padding:18px 0 6px">
+      <div style="color:var(--muted)">Amount to pay</div>
+      <div style="font-size:36px;font-weight:800">${rs(t.total)}</div>
+      <div style="color:var(--muted);font-size:13px">${esc(RESTAURANT.name)} · Table ${cust.table}</div>
+    </div>
+    <div class="c-sec">Pay using</div>
+    <div class="upi-apps">${["GPay", "PhonePe", "Paytm", "BHIM", "Card"].map((a) => `<button class="${cust.app === a ? "on" : ""}" onclick="cust.app='${a}';renderCustomer()">${a === "Card" ? "💳 Card" : a}</button>`).join("")}</div>
+    <p class="note" style="margin-top:14px">Demo payment page: no real money is taken. The real software uses a payment company (like Razorpay or PhonePe), and the money goes straight to the restaurant's bank account.</p>
+  </div>
+  <button class="c-bar" style="background:var(--green)" onclick="custDoPay()"><span>Pay ${rs(t.total)} ${via}</span><span>🔒</span></button>`;
+}
+function custDoPay() {
+  cust.processing = true;
+  renderCustomer();
+  setTimeout(() => { cust.processing = false; placeCustomerOrder(true); }, 1800);
+}
+function placeCustomerOrder(paid) {
+  if (!cust.cart.length) return;
+  const key = "T" + cust.table;
+  if (!orders[key]) orders[key] = { key, label: "Table " + cust.table, type: "dine", started: Date.now(), items: [], discount: 0, billed: false, billNo: null, paid: 0, customer: { name: "", phone: "", address: "" } };
+  const o = orders[key];
+  const t = cartTotals();
+  const n = cartCount();
+  cust.cart.forEach((c) => o.items.push({ mid: c.mid, name: c.name, variant: c.variant, price: c.price, qty: c.qty, sent: c.qty, qr: true, paidOnline: paid }));
+  o.billed = false;
+  const no = kotNo++;
+  tickets.push({ no, label: o.label, created: Date.now(), status: "new", src: "qr", paid, note: cust.note.trim(), items: cust.cart.map((c) => [lineName(c), c.qty]) });
+  sales.qrOrders += 1;
+  if (paid) {
+    o.paid = (o.paid || 0) + t.total;
+    recordSale(t.total, "online");
+    cust.cart.forEach((c) => { sales.items[c.name] = (sales.items[c.name] || 0) + c.qty; });
+  }
+  staffNotice = `New QR order from ${o.label}: ${n} item${n === 1 ? "" : "s"}, ${paid ? "paid " + rs(t.total) + " online" : "will pay at the counter"}. Sent to kitchen (KOT #${no}).`;
+  cust.last = { kot: no, amount: t.total, paid, app: cust.app, items: cust.cart.slice() };
+  cust.cart = [];
+  cust.note = "";
+  cust.step = "done";
+  renderCustomer();
+}
+function custDone() {
+  const L = cust.last;
+  const tk = tickets.find((x) => x.no === L.kot);
+  const stage = tk ? { new: 0, preparing: 1, ready: 2 }[tk.status] : 3;
+  return `<div class="c-body"><div class="c-center">
+    <div class="big-check">✓</div>
+    <div style="font-size:22px;font-weight:800">Order placed!</div>
+    <p style="color:var(--muted);margin:6px 0 0">${L.paid ? `Paid ${rs(L.amount)} ${L.app === "Card" ? "by card" : "with " + L.app}` : `Please pay ${rs(L.amount)} at the counter`}<br>Order no. ${L.kot}</p>
+    <div class="steps">${["Received", "Cooking", "Ready", "Served"].map((s, i) => `<div class="${i <= stage ? "on" : ""}"><i></i>${s}</div>`).join("")}</div>
+    <div class="card" style="text-align:left;padding:10px 14px;margin-top:14px">${L.items.map((c) => `<div class="c-row" style="color:var(--ink)"><span>${c.qty} × ${lineName(c)}</span><span>${rs(c.price * c.qty)}</span></div>`).join("")}</div>
+    <div class="row" style="justify-content:center;margin-top:18px">
+      <button class="btn primary" onclick="custStep('menu')">+ Order more</button>
+      <button class="btn" onclick="callWaiter()">🔔 Call waiter</button>
+    </div>
+    ${L.paid ? `<p style="color:var(--muted);font-size:13px;margin-top:14px">Your bill has been sent to your phone.</p>` : ""}
+  </div></div>`;
+}
+
+// ---------- Start ----------
+document.getElementById("brandName").textContent = RESTAURANT.name;
+document.getElementById("brandLogo").textContent = RESTAURANT.name.charAt(0);
+function tick() {
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+}
+tick();
+setInterval(() => {
+  tick();
+  if (document.body.classList.contains("customer")) { if (cust && cust.step === "done") renderCustomer(); }
+  else if (view === "kitchen" || view === "tables") render();
+}, 30000);
+route();
+</script>
+</body>
+</html>

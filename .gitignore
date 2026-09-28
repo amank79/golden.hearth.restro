@@ -1,0 +1,25 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Frontend
+node_modules/
+src/RestaurantPos.Api/wwwroot/
+
+# Local databases and backups
+*.db
+*.db-shm
+*.db-wal
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+Thumbs.db
+.DS_Store
+
+# Office lock files
+~$*

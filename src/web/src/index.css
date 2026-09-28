@@ -1,0 +1,12 @@
+:root {
+  --text: #2a1e17;
+  --accent: #d9822b;
+  --bg: #ffffff;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+body { margin: 0; }
+
+.shell { padding: 24px; }
