@@ -3,11 +3,13 @@ import { Icon, type IconName } from './components/Icon'
 import { Toaster } from './components/Toaster'
 import { api, errorText } from './lib/api'
 import type { Settings } from './lib/types'
+import { MenuScreen } from './screens/menu/MenuScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 
-type ScreenId = 'settings'
+type ScreenId = 'menu' | 'settings'
 
 const SCREENS: { id: ScreenId; label: string; icon: IconName; sub: string }[] = [
+  { id: 'menu', label: 'Menu', icon: 'menu', sub: 'Dishes, prices and what is available today' },
   { id: 'settings', label: 'Settings', icon: 'settings', sub: 'Restaurant details, GST and bill footer' },
 ]
 
@@ -81,7 +83,10 @@ export default function App() {
           ) : !settings ? (
             <div className="empty">Loading…</div>
           ) : (
-            screen === 'settings' && <SettingsScreen settings={settings} onSaved={setSettings} />
+            <>
+              {screen === 'menu' && <MenuScreen settings={settings} />}
+              {screen === 'settings' && <SettingsScreen settings={settings} onSaved={setSettings} />}
+            </>
           )}
         </div>
       </main>

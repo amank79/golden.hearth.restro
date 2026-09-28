@@ -53,7 +53,14 @@ public class MenuItem : Entity
     public string? ShortCode { get; set; }
     public string? Description { get; set; }
     public FoodType FoodType { get; set; }
+
+    /// <summary>GST rate for this dish in basis points (MENU-8). Null means the restaurant's default rate from settings.</summary>
+    public int? GstRateBp { get; set; }
+
+    /// <summary>"Not available today" switch (MENU-5). Unavailable dishes stay on the menu but cannot be billed.</summary>
     public bool IsAvailable { get; set; } = true;
+
+    /// <summary>False when the dish is removed from the menu. Rows are never deleted because old bills point to them.</summary>
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; }
     public List<ItemVariant> Variants { get; set; } = [];
@@ -67,6 +74,9 @@ public class ItemVariant : Entity
     public string Name { get; set; } = "Regular";
     public long PricePaise { get; set; }
     public int SortOrder { get; set; }
+
+    /// <summary>False when the variant is removed from the dish. Rows are never deleted because old bills point to them.</summary>
+    public bool IsActive { get; set; } = true;
 }
 
 public class Bill : Entity
