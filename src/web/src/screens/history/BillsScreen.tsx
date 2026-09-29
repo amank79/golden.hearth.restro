@@ -98,13 +98,13 @@ export function BillsScreen({ onPrint, onPreview }: Props) {
       </div>
 
       {today && (
-        <div className="stats">
-          <div className="stat main"><span>Today's total</span><b>{rupees(today.totalPaise)}</b><span>{plural(today.billCount, 'bill')}</span></div>
-          <div className="stat"><span><Icon name="cash" />Cash</span><b>{rupees(byMethod('Cash'))}</b></div>
-          <div className="stat"><span><Icon name="upi" />UPI</span><b>{rupees(byMethod('Upi'))}</b></div>
-          <div className="stat"><span><Icon name="card" />Card</span><b>{rupees(byMethod('Card'))}</b></div>
-          {today.unpaidPaise > 0 && <div className="stat warn"><span>Printed, not paid</span><b>{rupees(today.unpaidPaise)}</b></div>}
-          <div className="stat"><span><Icon name="cancel" />Cancelled</span><b>{today.cancelledCount}</b></div>
+        <div className="ledger" aria-label="Today">
+          <div><span>Today's total · {plural(today.billCount, 'bill')}</span><b>{rupees(today.totalPaise)}</b></div>
+          <div><span><Icon name="cash" />Cash</span><b>{rupees(byMethod('Cash'))}</b></div>
+          <div><span><Icon name="upi" />UPI</span><b>{rupees(byMethod('Upi'))}</b></div>
+          <div><span><Icon name="card" />Card</span><b>{rupees(byMethod('Card'))}</b></div>
+          {today.unpaidPaise > 0 && <div className="warn-fig"><span>Printed, not paid</span><b>{rupees(today.unpaidPaise)}</b></div>}
+          <div><span><Icon name="cancel" />Cancelled</span><b>{today.cancelledCount}</b></div>
         </div>
       )}
 
@@ -161,21 +161,25 @@ export function BillsScreen({ onPrint, onPreview }: Props) {
           )}
         </div>
 
-        <aside className="card detail" aria-label="Bill details">
+        <aside className="receipt-col" aria-label="Bill details">
           {!detail ? (
-            <div className="empty"><Icon name="receipt" /><br />Tap a bill in the list to see it here.</div>
+            <>
+              <div className="paper"><div className="empty"><Icon name="receipt" /><br />Tap a bill in the list to see it here.</div></div>
+              <div className="paper-foot" />
+            </>
           ) : (
             <>
-              <div className="detail-body">
-                <div className="detail-head">
-                  <h2>{detail.billNo ? `Bill ${detail.billNo}` : billLabel(detail)} <StatusPill b={detail} /></h2>
-                  <div className="detail-meta">
-                    <span>Table</span><div>{billLabel(detail)}</div>
-                    <span>Opened</span><div>{dateTime(detail.openedAt)}</div>
-                    <span>Printed</span><div>{detail.finalisedAt ? `${dateTime(detail.finalisedAt)} · ${detail.printCount}×` : 'not yet'}</div>
-                    <span>Document</span><div>{detail.documentTitle}</div>
-                    <span>Paid</span><div>{detail.payments.length ? detail.payments.map((p) => `${methodLabel(p.method)} ${rupees(p.amountPaise)}`).join(' + ') : '—'}</div>
-                  </div>
+              <div className="paper detail-body">
+                <header className="r-head">
+                  <div className="r-kicker">{detail.documentTitle}</div>
+                  <div className="r-title">{detail.billNo ? `Bill ${detail.billNo}` : billLabel(detail)}</div>
+                  <div className="r-sub"><StatusPill b={detail} /></div>
+                </header>
+                <div className="detail-meta">
+                  <span>Table</span><div>{billLabel(detail)}</div>
+                  <span>Opened</span><div>{dateTime(detail.openedAt)}</div>
+                  <span>Printed</span><div>{detail.finalisedAt ? `${dateTime(detail.finalisedAt)} · ${detail.printCount}×` : 'not yet'}</div>
+                  <span>Paid</span><div>{detail.payments.length ? detail.payments.map((p) => `${methodLabel(p.method)} ${rupees(p.amountPaise)}`).join(' + ') : '—'}</div>
                 </div>
                 {detail.status === 'Cancelled' && (
                   <div className="detail-cancelled">

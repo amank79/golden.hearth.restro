@@ -93,6 +93,23 @@ export function MenuScreen({ settings }: { settings: Settings }) {
           <button className="btn primary" onClick={() => setManagingCats(true)}>Add categories</button>
         </div>
       ) : (
+        <div className="menu-layout">
+          <nav className="catlist" aria-label="Categories">
+            <div className="catlist-head">Categories</div>
+            <button className={`catrow${cat === 'all' ? ' on' : ''}`} onClick={() => setCat('all')}>
+              All dishes<span className="n">{showRemoved ? menu.items.length : liveItems.length}</span>
+            </button>
+            {shownCats.map((c) => (
+              <button
+                key={c.id}
+                className={`catrow${cat === c.id ? ' on' : ''}${c.isActive ? '' : ' off'}`}
+                onClick={() => setCat(c.id)}
+              >
+                {c.name}<span className="n">{countIn(c.id)}</span>
+              </button>
+            ))}
+          </nav>
+
         <div className="menu-main">
           <div className="menu-tools">
             <label className="search">
@@ -104,20 +121,6 @@ export function MenuScreen({ settings }: { settings: Settings }) {
               <input type="checkbox" checked={showRemoved} onChange={(e) => setShowRemoved(e.target.checked)} /> Show removed dishes
             </label>
           </div>
-          <nav className="cats" aria-label="Categories">
-            <button className={`cat${cat === 'all' ? ' on' : ''}`} onClick={() => setCat('all')}>
-              All dishes<span className="n">{showRemoved ? menu.items.length : liveItems.length}</span>
-            </button>
-            {shownCats.map((c) => (
-              <button
-                key={c.id}
-                className={`cat${cat === c.id ? ' on' : ''}${c.isActive ? '' : ' off'}`}
-                onClick={() => setCat(c.id)}
-              >
-                {c.name}<span className="n">{countIn(c.id)}</span>
-              </button>
-            ))}
-          </nav>
 
             <div className="card">
               <table className="list-table">
@@ -142,10 +145,10 @@ export function MenuScreen({ settings }: { settings: Settings }) {
                       </td>
                       <td>{i.shortCode && <span className="code">{i.shortCode}</span>}</td>
                       {cat === 'all' && <td className="muted">{catName.get(i.categoryId)}</td>}
-                      <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                      <td style={{ fontVariantNumeric: 'tabular-nums' }}>
                         {i.variants.length === 1
                           ? <b>{rupeesShort(i.variants[0].pricePaise)}</b>
-                          : i.variants.map((v) => <div key={v.id}>{v.name} <b>{rupeesShort(v.pricePaise)}</b></div>)}
+                          : <span className="price-sizes">{i.variants.map((v) => <span key={v.id}>{v.name} <b>{rupeesShort(v.pricePaise)}</b></span>)}</span>}
                       </td>
                       <td className="muted">{percent(i.gstRateBp ?? settings.gstRateBp)}%{i.gstRateBp != null && ' *'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
@@ -171,6 +174,7 @@ export function MenuScreen({ settings }: { settings: Settings }) {
             <p className="foot-note">
               Price changes apply to new orders only; old bills keep their prices. * = dish has its own GST rate.
             </p>
+        </div>
         </div>
       )}
 

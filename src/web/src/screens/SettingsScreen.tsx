@@ -33,7 +33,7 @@ function BackupPanel({ backup }: { backup: BackupStatus | null }) {
 
   const failed = backup?.lastResult && !backup.lastResult.success
   return (
-    <div className="card panel">
+    <div className="card panel" id="set-backup">
       <h2><Icon name="shield" />Backup</h2>
       <p className="muted">A safe copy of all bills and the menu is saved every day and when the program closes.</p>
       {backup && (
@@ -74,9 +74,9 @@ function AppearancePanel() {
     setTheme(t)
   }
   return (
-    <div className="card panel">
+    <div className="card panel" id="set-appearance">
       <h2><Icon name="eye" />Appearance</h2>
-      <p className="muted">Pick the colours for this laptop. Changes straight away.</p>
+      <p className="muted">Pick the colours for this laptop. Changes straight away. Midnight is the dark one, for late evenings.</p>
       <div className="theme-opts" role="radiogroup" aria-label="Colours">
         {THEMES.map((t) => (
           <button key={t.id} type="button" role="radio" aria-checked={theme === t.id} className={`theme-opt${theme === t.id ? ' on' : ''}`} onClick={() => choose(t.id)}>
@@ -90,12 +90,23 @@ function AppearancePanel() {
   )
 }
 
+type SectionId = 'restaurant' | 'gst' | 'backup' | 'appearance' | 'about'
+
+const SECTIONS: { id: SectionId; label: string }[] = [
+  { id: 'restaurant', label: 'Restaurant details' },
+  { id: 'gst', label: 'GST' },
+  { id: 'backup', label: 'Backup' },
+  { id: 'appearance', label: 'Colours' },
+  { id: 'about', label: 'About' },
+]
+
 /** Restaurant details and tax settings printed on every bill (SET-1, SET-2), plus backup and version. */
 export function SettingsScreen({ settings, onSaved, backup }: Props) {
   const [form, setForm] = useState({ ...settings, gstRate: percent(settings.gstRateBp) })
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [saving, setSaving] = useState(false)
   const [version, setVersion] = useState<string | null>(null)
+  const [section, setSection] = useState<SectionId>('restaurant')
 
   useEffect(() => {
     api.get<{ version: string }>('/health').then((h) => setVersion(h.version.split('+')[0]), () => {})
@@ -134,6 +145,11 @@ export function SettingsScreen({ settings, onSaved, backup }: Props) {
   const composition = form.taxMode === 'Composition'
   const halfRate = parsePercent(form.gstRate)
 
+  const goTo = (id: SectionId) => {
+    setSection(id)
+    document.getElementById(`set-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <form onSubmit={save}>
       <div className="page-head">
@@ -144,7 +160,18 @@ export function SettingsScreen({ settings, onSaved, backup }: Props) {
       </div>
 
       <div className="settings">
-        <div className="card panel">
+        <nav className="catlist settings-nav" aria-label="Settings sections">
+          <div className="catlist-head">Sections</div>
+          {SECTIONS.map((s) => (
+            <button key={s.id} type="button" className={`catrow${section === s.id ? ' on' : ''}`} onClick={() => goTo(s.id)}>
+              {s.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="settings-body">
+        <div className="settings-col">
+        <div className="card panel" id="set-restaurant">
           <h2><Icon name="receipt" />Restaurant details</h2>
           <p className="muted">Printed at the top and bottom of every bill.</p>
           <div className="form">
@@ -167,9 +194,11 @@ export function SettingsScreen({ settings, onSaved, backup }: Props) {
             </Field>
           </div>
         </div>
+        <AppearancePanel />
+        </div>
 
         <div className="settings-col">
-          <div className="card panel">
+          <div className="card panel" id="set-gst">
             <h2><Icon name="bills" />GST</h2>
             <p className="muted">Confirm these with the CA before the first real bill.</p>
             <div className="form">
@@ -207,15 +236,15 @@ export function SettingsScreen({ settings, onSaved, backup }: Props) {
           </div>
 
           <BackupPanel backup={backup} />
-          <AppearancePanel />
 
-          <div className="card panel">
+          <div className="card panel" id="set-about">
             <h2><Icon name="settings" />About</h2>
             <div className="kv">
               <span>Version</span><div>{version ?? '…'}</div>
               <span>Help</span><div>Press <kbd>F1</kbd> for keyboard shortcuts.</div>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
