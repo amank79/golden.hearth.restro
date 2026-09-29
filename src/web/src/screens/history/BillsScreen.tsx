@@ -172,7 +172,7 @@ export function BillsScreen({ onPrint, onPreview }: Props) {
               <div className="paper detail-body">
                 <header className="r-head">
                   <div className="r-kicker">{detail.documentTitle}</div>
-                  <div className="r-title">{detail.billNo ? `Bill ${detail.billNo}` : billLabel(detail)}</div>
+                  <div className="r-title plain">{detail.billNo ? `Bill ${detail.billNo}` : billLabel(detail)}</div>
                   <div className="r-sub"><StatusPill b={detail} /></div>
                 </header>
                 <div className="detail-meta">

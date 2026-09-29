@@ -95,8 +95,9 @@ export function BillPanel({ bill, now, flash, onNewDineIn, onNewTakeaway, onEdit
             return (
               <div className={`line${flashing ? ' flash' : ''}`} key={flashing ? `${l.id}-${flash.n}` : l.id} data-line={l.id}>
                 <button className="line-main" onClick={() => onEditLine(l)} disabled={!editable} title={editable ? 'Change quantity or add a note' : undefined}>
-                  <span className="line-name">{l.itemName}{l.variantName !== 'Regular' && <em>{l.variantName}</em>}</span>
+                  <span className="line-name">{l.itemName}</span>
                   <span className="line-meta">
+                    {l.variantName !== 'Regular' && <em>{l.variantName}</em>}
                     {rupeesShort(l.unitPricePaise)} each
                     {l.note && <> · <span className="line-note">{l.note}</span></>}
                   </span>

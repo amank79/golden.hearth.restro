@@ -2,7 +2,8 @@
    A deep ink-navy frame (top navigation, pay buttons, total band) on warm porcelain surfaces, champagne gold as the
    accent, and the bill drawn as a paper receipt. Three palettes share the same tokens: Navy & Champagne (default),
    Burgundy & Champagne, and Midnight (dark). Components use only these tokens, never raw colours.
-   Fonts are bundled from npm (see main.tsx): Marcellus for the wordmark and titles, Manrope for everything else. */
+   Fonts are bundled from npm (see main.tsx): Marcellus for the wordmark and word-only titles, Manrope for everything else
+   (including every number: Marcellus' zero looks like the letter O). */
 :root {
   /* Surfaces and text */
   --bg: #f3f1ec;
@@ -214,6 +215,9 @@ kbd { font-family: var(--font); font-size: 11px; font-weight: 700; background: v
 .topnav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
 .status { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px; border-radius: 99px; font-size: 12.5px; font-weight: 700; text-decoration: none; white-space: nowrap; background: var(--nav-hover); color: var(--nav-ink); border: 1px solid var(--nav-line); }
 .status svg.i { width: 15px; height: 15px; }
+/* Status pills look 32px tall; the tap area is 44px */
+a.status { position: relative; }
+a.status::before { content: ''; position: absolute; inset: -6px -3px; }
 .status.ok { color: var(--nav-ok); background: color-mix(in srgb, var(--nav-ok) 14%, transparent); border-color: transparent; }
 .status.warn { color: var(--gold-hi); background: color-mix(in srgb, var(--gold) 20%, transparent); border-color: transparent; }
 .status.bad { color: var(--on-solid); background: var(--red-solid); border-color: transparent; }
@@ -356,13 +360,14 @@ a.btn { color: inherit; text-decoration: none; }
 
 /* Dish tiles: bigger names and a clear price; two sizes are two big buttons */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); gap: 12px; overflow: auto; align-content: start; padding: 10px 8px 24px 2px; margin: -8px -8px 0 0; }
-.tile { position: relative; display: flex; flex-direction: column; text-align: left; min-height: 134px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-sm); transition: border-color .15s, box-shadow .15s; }
+/* Tall enough for a two-line name plus the price strip or the Half / Full buttons (grid rows do not grow for text wrapping inside a button). */
+.tile { position: relative; display: flex; flex-direction: column; text-align: left; min-height: 142px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-sm); transition: border-color .15s, box-shadow .15s; }
 button.tile:hover, .tile:has(.tile-main:hover) { border-color: var(--gold-line); box-shadow: var(--shadow-md); }
 .tile.hl { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow), var(--shadow-md); }
 .tile-main { display: flex; flex-direction: column; gap: 6px; text-align: left; flex: 1 0 auto; padding: 12px 14px 8px; border-radius: 14px 14px 0 0; }
 .tile-top { display: flex; align-items: center; gap: 7px; min-height: 18px; }
 .tile-code { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--gold-text); background: var(--gold-soft); border-radius: 6px; padding: 1px 7px; }
-.tile-name { font-weight: 700; font-size: 16px; line-height: 1.28; }
+.tile-name { font-weight: 700; font-size: 16px; line-height: 1.28; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 /* Single-price dish: the bottom strip shows the price and a + */
 .tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 46px; margin-top: auto; padding: 0 8px 0 14px; border-top: 1px dashed var(--line-2); }
 .tile-price { font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums; }
@@ -389,7 +394,9 @@ button.tile:hover .tile-plus { transform: scale(1.08); }
 .r-head { padding: 14px 18px 10px; }
 .r-kicker { font-size: 10.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-text); }
 .r-kicker small { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--muted); }
-.r-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 2px; font-family: var(--display); font-size: 27px; line-height: 1.15; letter-spacing: .01em; }
+.r-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 2px; font-weight: 800; font-size: 25px; line-height: 1.15; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+/* Marcellus is only for words: its zero looks like the letter O, so table and bill numbers stay in Manrope. */
+.r-title.plain { font-size: 23px; }
 .r-sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; font-weight: 600; }
 /* Billing: title on the left, order type and time on the right, to leave room for the dishes */
 .r-head.split { display: flex; align-items: center; gap: 10px; padding: 12px 18px 8px; }
@@ -413,7 +420,7 @@ button.tile:hover .tile-plus { transform: scale(1.08); }
 .line-main:not(:disabled):hover { background: var(--hover); }
 .line-main:disabled { cursor: default; }
 .line-name { display: block; font-weight: 700; line-height: 1.3; }
-.line-name em { font-style: normal; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--gold-text); border: 1px solid var(--gold-line); border-radius: 5px; padding: 0 5px; margin-left: 6px; vertical-align: 1px; }
+.line-meta em { font-style: normal; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--gold-text); border: 1px solid var(--gold-line); border-radius: 5px; padding: 0 5px; margin-right: 6px; vertical-align: 1px; }
 .line-meta { display: block; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .line-note { color: var(--blue); font-weight: 700; }
 .line-amt { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -427,6 +434,10 @@ button.tile:hover .tile-plus { transform: scale(1.08); }
 
 .totals { padding: 6px 18px 8px; border-top: 1px dashed var(--line-2); font-variant-numeric: tabular-nums; }
 .totals > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 1px 0; color: var(--muted); font-size: 13.5px; }
+/* Billing receipt: the tax lines in two columns, to leave room for the dishes */
+.totals.compact { display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: row dense; column-gap: 22px; }
+.totals.compact > .span { grid-column: 1 / -1; }
+.totals.compact > div { font-size: 13px; }
 .totals .grand { color: var(--ink); font-weight: 800; font-size: 22px; padding-top: 8px; margin-top: 6px; border-top: 1px dashed var(--line-2); }
 .totals .grand span:first-child { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
 /* Torn paper edge between the receipt and the total band */
@@ -462,7 +473,7 @@ button.tile:hover .tile-plus { transform: scale(1.08); }
 .modal.wide { width: min(760px, 100%); }
 /* A navy title band with a gold rule, like the top navigation */
 .modal-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: flex-start; gap: 10px; margin: 0 -24px 18px; padding: 16px 12px 14px 24px; background: var(--nav-bg); color: var(--nav-ink-hi); box-shadow: inset 0 -2px 0 var(--gold); }
-.modal-head h2 { margin: 0; font-family: var(--display); font-size: 23px; font-weight: 400; line-height: 1.2; letter-spacing: .02em; color: var(--gold-hi); }
+.modal-head h2 { margin: 0; font-size: 20px; font-weight: 800; line-height: 1.25; color: var(--gold-hi); font-variant-numeric: tabular-nums; }
 .modal-sub { margin: 4px 0 0; color: var(--nav-ink); font-size: 14px; }
 .modal-head .icon-btn { margin: -6px 0 0 auto; color: var(--nav-ink); }
 .modal-head .icon-btn:hover { background: var(--nav-hover); color: var(--nav-ink-hi); }
@@ -620,10 +631,11 @@ button.tile:hover .tile-plus { transform: scale(1.08); }
 @media (max-height: 800px) {
   .billing { gap: 8px; padding: 8px 12px 10px; }
   .r-head.split { padding: 10px 16px 6px; }
-  .r-title { font-size: 24px; }
+  .r-title { font-size: 23px; }
   .act { min-height: 52px; }
   .r-total b { font-size: 27px; }
-  .tile { min-height: 122px; }
+  .tile { min-height: 138px; }
+  .tile-main { padding-top: 10px; }
 }
 
 @media (max-width: 1250px) {

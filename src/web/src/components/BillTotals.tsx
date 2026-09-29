@@ -15,7 +15,7 @@ export function BillTotals({ bill, onDiscount, compact, hideGrand }: Props) {
   const discountLabel =
     bill.discountKind === 'Percent' ? ` (${percent(bill.discountValue)}%)` : bill.discountKind === 'Amount' ? '' : ''
   return (
-    <div className="totals">
+    <div className={`totals${compact ? ' compact' : ''}`}>
       <div><span>Items total</span><span>{rupees(bill.subtotalPaise)}</span></div>
       {(bill.discountPaise > 0 || onDiscount) && <div>
         <span>
@@ -32,7 +32,7 @@ export function BillTotals({ bill, onDiscount, compact, hideGrand }: Props) {
         ? bill.taxGroups
             .filter((g) => g.gstRateBp > 0)
             .map((g) => (
-              <div key={g.gstRateBp} title={`CGST ${percent(g.halfRateBp)}% ${rupees(g.cgstPaise)} + SGST ${percent(g.halfRateBp)}% ${rupees(g.sgstPaise)}`}>
+              <div key={g.gstRateBp} className="span" title={`CGST ${percent(g.halfRateBp)}% ${rupees(g.cgstPaise)} + SGST ${percent(g.halfRateBp)}% ${rupees(g.sgstPaise)}`}>
                 <span>GST {percent(g.gstRateBp)}% (CGST + SGST {percent(g.halfRateBp)}% each)</span>
                 <span>{rupees(g.cgstPaise + g.sgstPaise)}</span>
               </div>
