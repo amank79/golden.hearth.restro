@@ -5,6 +5,7 @@ import { ShortcutsHelp } from './components/ShortcutsHelp'
 import { Toaster } from './components/Toaster'
 import { toast } from './components/toast'
 import { api, errorText } from './lib/api'
+import { brandParts } from './lib/brand'
 import { dateTime, day, indiaToday, plural, time } from './lib/bills'
 import { rupees } from './lib/money'
 import type { BackupStatus, Bill, BillSummary, PrintOutput, Settings, TodaySummary } from './lib/types'
@@ -36,11 +37,6 @@ function useClock() {
   return { time: time(now.toISOString()), day: day(now.toISOString()) }
 }
 
-/** Badge letters from the restaurant name, skipping "The": "The Golden Hearth Restaurant" -> "GH". */
-function initials(name: string | undefined) {
-  const words = (name ?? '').split(/\s+/).filter((w) => w && !/^(the|a|an)$/i.test(w))
-  return (words.slice(0, 2).map((w) => w[0]).join('') || 'R').toUpperCase()
-}
 
 /** Backup state for the status bar: green when recent, amber when overdue, red when the last one failed. */
 function BackupPill({ status }: { status: BackupStatus | null }) {
@@ -145,67 +141,68 @@ export default function App() {
 
   const gstinMissing = settings !== null && settings.taxMode === 'Regular' && !settings.gstin.trim()
 
+  const brand = brandParts(settings?.name)
+
   return (
     <div className="app">
-      <nav className="rail" aria-label="Screens">
-        <div className="rail-logo" title={settings?.name}>{initials(settings?.name)}</div>
-        {SCREENS.map((s) => (
-          <a key={s.id} className={`rail-btn${s.id === screen ? ' active' : ''}`} href={`#${s.id}`} aria-current={s.id === screen ? 'page' : undefined}>
-            <Icon name={s.icon} />
-            {s.label}
-            {s.id === 'billing' && openCount > 0 && <span className="rail-badge" title={`${plural(openCount, 'open bill')}`}>{openCount}</span>}
-          </a>
-        ))}
-        <div className="rail-foot">
-          <button className="rail-btn" onClick={() => setHelp(true)} title="Keyboard shortcuts (F1)">
+      <header className="topnav">
+        <a className="brand" href="#billing" title={settings?.name}>
+          <span className="brand-mark"><Icon name="hearth" /></span>
+          <span className="brand-text">
+            <b>{brand.main}</b>
+            {brand.sub && <small>{brand.sub}</small>}
+          </span>
+        </a>
+        <nav className="tabs" aria-label="Screens">
+          {SCREENS.map((s) => (
+            <a key={s.id} className={`tab${s.id === screen ? ' active' : ''}`} href={`#${s.id}`} aria-current={s.id === screen ? 'page' : undefined}>
+              <Icon name={s.icon} />
+              {s.label}
+              {s.id === 'billing' && openCount > 0 && <span className="tab-badge" title={plural(openCount, 'open bill')}>{openCount}</span>}
+            </a>
+          ))}
+        </nav>
+        <div className="topnav-right">
+          {!connected && (
+            <span className="status bad" title="The billing program is not answering. Restart the laptop or open the Restaurant POS shortcut again.">
+              <Icon name="alert" /><span>Not connected</span>
+            </span>
+          )}
+          {gstinMissing && (
+            <a className="status warn" href="#settings" title="Bills are printed as Tax Invoice without a GSTIN. Add it in Settings.">
+              <Icon name="alert" /><span>GSTIN missing</span>
+            </a>
+          )}
+          <BackupPill status={backup} />
+          {today && (
+            <a className="today" href="#bills" title="Open bill history">
+              <b>{rupees(today.totalPaise)}</b>
+              <small>Today · {plural(today.billCount, 'bill')}</small>
+            </a>
+          )}
+          <span className="clock"><b>{clock.time}</b><small>{clock.day}</small></span>
+          <button className="keys-btn" onClick={() => setHelp(true)} title="Keyboard shortcuts (F1)" aria-label="Keyboard shortcuts (F1)">
             <Icon name="keyboard" />
-            Keys
           </button>
         </div>
-      </nav>
+      </header>
 
-      <div className="main">
-        <header className="appbar">
-          <div className="appbar-name">{settings?.name ?? 'Restaurant POS'}</div>
-          <div className="appbar-right">
-            {!connected && (
-              <span className="status bad" title="The billing program is not answering. Restart the laptop or open the Restaurant POS shortcut again.">
-                <Icon name="alert" /><span>Not connected</span>
-              </span>
-            )}
-            {gstinMissing && (
-              <a className="status warn" href="#settings" title="Bills are printed as Tax Invoice without a GSTIN. Add it in Settings.">
-                <Icon name="alert" /><span>GSTIN missing</span>
-              </a>
-            )}
-            <BackupPill status={backup} />
-            {today && (
-              <a className="today" href="#bills" title="Open bill history">
-                <b>{rupees(today.totalPaise)}</b>
-                <small>Today · {plural(today.billCount, 'bill')}</small>
-              </a>
-            )}
-            <span className="clock"><b>{clock.time}</b><small>{clock.day}</small></span>
+      <main className={`view${screen === 'billing' ? ' full' : ''}`}>
+        {loadError ? (
+          <div className="error-box">
+            {loadError} <button className="btn small" onClick={() => { setLoadError(null); loadSettings() }}>Try again</button>
           </div>
-        </header>
-
-        <main className={`view${screen === 'billing' ? ' full' : ''}`}>
-          {loadError ? (
-            <div className="error-box">
-              {loadError} <button className="btn small" onClick={() => { setLoadError(null); loadSettings() }}>Try again</button>
-            </div>
-          ) : !settings ? (
-            <div className="empty">Loading…</div>
-          ) : (
-            <>
-              {screen === 'billing' && <BillingScreen onPrint={printBill} onPreview={previewBill} />}
-              {screen === 'bills' && <BillsScreen onPrint={printBill} onPreview={previewBill} />}
-              {screen === 'menu' && <MenuScreen settings={settings} />}
-              {screen === 'settings' && <SettingsScreen settings={settings} onSaved={setSettings} backup={backup} />}
-            </>
-          )}
-        </main>
-      </div>
+        ) : !settings ? (
+          <div className="empty">Loading…</div>
+        ) : (
+          <>
+            {screen === 'billing' && <BillingScreen onPrint={printBill} onPreview={previewBill} />}
+            {screen === 'bills' && <BillsScreen onPrint={printBill} onPreview={previewBill} />}
+            {screen === 'menu' && <MenuScreen settings={settings} />}
+            {screen === 'settings' && <SettingsScreen settings={settings} onSaved={setSettings} backup={backup} />}
+          </>
+        )}
+      </main>
       {preview && <PrintPreview output={preview.output} printed={preview.printed} onClose={() => setPreview(null)} />}
       {help && <ShortcutsHelp onClose={() => setHelp(false)} />}
       <Toaster />
