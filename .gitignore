@@ -23,3 +23,6 @@ Thumbs.db
 
 # Office lock files
 ~$*
+
+# Installer packages (scripts/publish.ps1)
+dist/

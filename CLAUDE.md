@@ -29,7 +29,13 @@ Do **not** build Phase 2/3 features (kitchen tickets, table map, waiter phones, 
 | `docs/` | PRD, planning transcript. |
 | `demo/restaurant-demo.html` | Clickable UI demo shown to the family — the intended look and flow. |
 
-The database file lives at `%LOCALAPPDATA%\RestaurantPos\pos.db` unless `ConnectionStrings:Pos` is set.
+Data folder (`Hosting/PosPaths.cs`): `C:\ProgramData\RestaurantPos` when installed (Production), `%LOCALAPPDATA%\RestaurantPos-dev` in Development; override with `Pos:DataRoot`. Inside it: `data\pos.db` (database, unless `ConnectionStrings:Pos` is set), `backups\`, `logspp-yyyyMMdd.log`, and `settings.json` (per-installation settings such as extra backup folders; loaded on top of appsettings).
+
+| Path | What |
+|---|---|
+| `src/RestaurantPos.Api/Backup` | Daily verified backup (`VACUUM INTO` + integrity check), extra copies, retention, backup on shutdown and before any migration; `/api/backup/status` and `/api/backup/run`. |
+| `src/RestaurantPos.Api/Hosting` | Data paths and logging (Serilog: daily file in `logs\`, one line per `/api` call). |
+| `installer/`, `scripts/publish.ps1` | Windows installer package: runs as the `RestaurantPos` Windows service, Edge app-mode shortcuts, install/update, restore, uninstall, collect logs. |
 
 ## Commands
 
@@ -45,6 +51,9 @@ npm run dev      # UI on :5173, /api is proxied to :5080
 npm run build    # type-check + build into the API's wwwroot
 npm run lint
 npm test         # frontend unit tests (rupee parsing/formatting, dish search)
+
+# Installer package (Windows, from the repository root) -> dist\RestaurantPos-<version>.zip
+powershell -ExecutionPolicy Bypass -File scripts\publish.ps1 -Version 0.1.0
 
 # After changing entities:
 dotnet ef migrations add <Name> --project src/RestaurantPos.Api -o Data/Migrations
@@ -63,6 +72,8 @@ Before finishing any task: `dotnet build`, `dotnet test`, and `npm run build` + 
 - **Schema changes go through EF migrations** (the app runs `Database.Migrate()` at start-up). Never edit an existing migration after it has been committed.
 - **Everything works offline:** no CDN fonts, scripts or images; bundle all assets.
 - Money, GST, rounding and bill-numbering logic must have unit tests.
+- Log with `ILogger` (it goes to the daily log file); never log customer phone numbers or other personal data.
+- Never delete or move the database file from code; backups and restores go through `DatabaseBackup` and `installer/restore.ps1`.
 
 ## UI guidelines
 

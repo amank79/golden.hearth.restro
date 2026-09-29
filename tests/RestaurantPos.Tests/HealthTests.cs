@@ -14,6 +14,13 @@ public class HealthTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Unknown_api_address_returns_404_not_the_app_page()
+    {
+        var response = await factory.CreateClient().GetAsync("/api/does-not-exist");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public void Database_is_created_with_default_settings()
     {
         using var scope = factory.Services.CreateScope();

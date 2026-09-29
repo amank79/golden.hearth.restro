@@ -4,10 +4,10 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace RestaurantPos.Tests;
 
-/// <summary>Runs the API against a throwaway SQLite file so tests never touch the real database.</summary>
+/// <summary>Runs the API against a throwaway data folder and SQLite file so tests never touch real data.</summary>
 public class ApiFactory : WebApplicationFactory<Program>
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"pos-test-{Guid.NewGuid():N}.db");
+    public string DataRoot { get; } = Path.Combine(Path.GetTempPath(), $"pos-test-{Guid.NewGuid():N}");
 
     /// <summary>The API's clock. Tests can move it to check dates, financial years and "today".</summary>
     public TestClock Clock { get; } = new(TestClock.India(2026, 10, 11, 19, 30));
@@ -17,15 +17,18 @@ public class ApiFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
-        builder.UseSetting("ConnectionStrings:Pos", $"Data Source={_dbPath};Pooling=False");
+        builder.UseSetting("Pos:DataRoot", DataRoot);
+        builder.UseSetting("ConnectionStrings:Pos", $"Data Source={Path.Combine(DataRoot, "test.db")};Pooling=False");
         builder.UseSetting("SampleMenu:Seed", SeedSampleMenu ? "true" : "false");
+        // The scheduled backup would race with tests; backup tests call DatabaseBackup directly.
+        builder.UseSetting("Backup:Enabled", "false");
         builder.ConfigureServices(s => s.Replace(ServiceDescriptor.Singleton<TimeProvider>(Clock)));
     }
 
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        File.Delete(_dbPath);
+        if (Directory.Exists(DataRoot)) Directory.Delete(DataRoot, recursive: true);
     }
 }
 
