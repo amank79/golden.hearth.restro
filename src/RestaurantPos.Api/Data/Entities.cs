@@ -8,9 +8,21 @@ public enum FoodType { Veg, NonVeg, Egg }
 public enum OrderType { DineIn, Takeaway }
 public enum BillStatus { Open, Paid, Cancelled }
 public enum PaymentMethod { Cash, Upi, Card }
+public enum DiscountKind { None, Percent, Amount }
+
+/// <summary>
+/// Base for every stored row. PublicId is a stable id for the future cloud sync (the local int Id is not
+/// unique across machines). CreatedAt/UpdatedAt are set automatically in <see cref="PosDbContext.SaveChanges()"/>.
+/// </summary>
+public abstract class Entity
+{
+    public Guid PublicId { get; set; } = Guid.NewGuid();
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
 
 /// <summary>Single row (Id = 1) holding the restaurant details printed on every bill.</summary>
-public class RestaurantSettings
+public class RestaurantSettings : Entity
 {
     public int Id { get; set; } = 1;
     public string Name { get; set; } = "Your Restaurant";
@@ -24,7 +36,7 @@ public class RestaurantSettings
     public string? OwnerPinHash { get; set; }
 }
 
-public class Category
+public class Category : Entity
 {
     public int Id { get; set; }
     public string Name { get; set; } = "";
@@ -33,7 +45,7 @@ public class Category
     public List<MenuItem> Items { get; set; } = [];
 }
 
-public class MenuItem
+public class MenuItem : Entity
 {
     public int Id { get; set; }
     public int CategoryId { get; set; }
@@ -42,23 +54,33 @@ public class MenuItem
     public string? ShortCode { get; set; }
     public string? Description { get; set; }
     public FoodType FoodType { get; set; }
+
+    /// <summary>GST rate for this dish in basis points (MENU-8). Null means the restaurant's default rate from settings.</summary>
+    public int? GstRateBp { get; set; }
+
+    /// <summary>"Not available today" switch (MENU-5). Unavailable dishes stay on the menu but cannot be billed.</summary>
     public bool IsAvailable { get; set; } = true;
+
+    /// <summary>False when the dish is removed from the menu. Rows are never deleted because old bills point to them.</summary>
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; }
     public List<ItemVariant> Variants { get; set; } = [];
 }
 
 /// <summary>A priced option of an item. Items without Half/Full have one variant named "Regular".</summary>
-public class ItemVariant
+public class ItemVariant : Entity
 {
     public int Id { get; set; }
     public int MenuItemId { get; set; }
     public string Name { get; set; } = "Regular";
     public long PricePaise { get; set; }
     public int SortOrder { get; set; }
+
+    /// <summary>False when the variant is removed from the dish. Rows are never deleted because old bills point to them.</summary>
+    public bool IsActive { get; set; } = true;
 }
 
-public class Bill
+public class Bill : Entity
 {
     public int Id { get; set; }
 
@@ -71,12 +93,20 @@ public class Bill
     public OrderType OrderType { get; set; }
     public string? TableLabel { get; set; }
     public BillStatus Status { get; set; } = BillStatus.Open;
+
+    // Tax mode used for this bill: follows the settings while the bill is open and is frozen when it is finalised,
+    // so a later change of tax mode never changes an issued bill.
+    public TaxMode TaxMode { get; set; } = TaxMode.Regular;
     public DateTimeOffset OpenedAt { get; set; }
     public DateTimeOffset? FinalisedAt { get; set; }
     public DateTimeOffset? SettledAt { get; set; }
 
     public long SubtotalPaise { get; set; }
     public long DiscountPaise { get; set; }
+
+    // What staff entered: a percent in basis points (1000 = 10%) or an amount in paise. DiscountPaise is the result.
+    public DiscountKind DiscountKind { get; set; } = DiscountKind.None;
+    public long DiscountValue { get; set; }
     public string? DiscountReason { get; set; }
     public long TaxablePaise { get; set; }
     public long CgstPaise { get; set; }
@@ -87,12 +117,16 @@ public class Bill
     public string? CancelReason { get; set; }
     public DateTimeOffset? CancelledAt { get; set; }
 
+    /// <summary>How many times the bill was printed. Every print after the first is marked "DUPLICATE".</summary>
+    public int PrintCount { get; set; }
+    public DateTimeOffset? LastPrintedAt { get; set; }
+
     public List<BillLine> Lines { get; set; } = [];
     public List<Payment> Payments { get; set; } = [];
 }
 
 /// <summary>Names and price are copied from the menu so later menu changes never alter old bills.</summary>
-public class BillLine
+public class BillLine : Entity
 {
     public int Id { get; set; }
     public int BillId { get; set; }
@@ -101,12 +135,18 @@ public class BillLine
     public string ItemName { get; set; } = "";
     public string VariantName { get; set; } = "";
     public long UnitPricePaise { get; set; }
+
+    /// <summary>GST rate copied from the dish (or the restaurant default) when the line was added.</summary>
+    public int GstRateBp { get; set; }
     public int Qty { get; set; }
     public string? Note { get; set; }
     public long LineTotalPaise { get; set; }
+
+    /// <summary>Set when the line is taken off an open bill. The row is kept (never deleted) for the record.</summary>
+    public DateTimeOffset? RemovedAt { get; set; }
 }
 
-public class Payment
+public class Payment : Entity
 {
     public int Id { get; set; }
     public int BillId { get; set; }

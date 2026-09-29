@@ -44,6 +44,7 @@ npm install
 npm run dev      # UI on :5173, /api is proxied to :5080
 npm run build    # type-check + build into the API's wwwroot
 npm run lint
+npm test         # frontend unit tests (rupee parsing/formatting, dish search)
 
 # After changing entities:
 dotnet ef migrations add <Name> --project src/RestaurantPos.Api -o Data/Migrations

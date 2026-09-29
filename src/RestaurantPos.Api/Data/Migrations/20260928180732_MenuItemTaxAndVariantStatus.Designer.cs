@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RestaurantPos.Api.Data;
 
@@ -10,9 +11,11 @@ using RestaurantPos.Api.Data;
 namespace RestaurantPos.Api.Data.Migrations
 {
     [DbContext(typeof(PosDbContext))]
-    partial class PosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260928180732_MenuItemTaxAndVariantStatus")]
+    partial class MenuItemTaxAndVariantStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
@@ -38,18 +41,11 @@ namespace RestaurantPos.Api.Data.Migrations
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("DiscountKind")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<long>("DiscountPaise")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("DiscountReason")
                         .HasColumnType("TEXT");
-
-                    b.Property<long>("DiscountValue")
-                        .HasColumnType("INTEGER");
 
                     b.Property<long?>("FinalisedAt")
                         .HasColumnType("INTEGER");
@@ -57,18 +53,12 @@ namespace RestaurantPos.Api.Data.Migrations
                     b.Property<string>("FinancialYear")
                         .HasColumnType("TEXT");
 
-                    b.Property<long?>("LastPrintedAt")
-                        .HasColumnType("INTEGER");
-
                     b.Property<long>("OpenedAt")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("OrderType")
                         .IsRequired()
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("PrintCount")
-                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("TEXT");
@@ -93,10 +83,6 @@ namespace RestaurantPos.Api.Data.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("TableLabel")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TaxMode")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<long>("TaxablePaise")
@@ -136,9 +122,6 @@ namespace RestaurantPos.Api.Data.Migrations
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("GstRateBp")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("ItemName")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -159,9 +142,6 @@ namespace RestaurantPos.Api.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Qty")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long?>("RemovedAt")
                         .HasColumnType("INTEGER");
 
                     b.Property<long>("UnitPricePaise")
