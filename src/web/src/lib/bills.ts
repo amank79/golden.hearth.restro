@@ -17,10 +17,16 @@ const dateTimeFormat = new Intl.DateTimeFormat('en-IN', {
   hour: '2-digit',
   minute: '2-digit',
 })
+const dayFormat = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short' })
 
 /** Times are shown in India time, like the printed bill. */
 export function time(iso: string): string {
   return timeFormat.format(new Date(iso))
+}
+
+/** "Tue, 29 Sept" for the status bar. */
+export function day(iso: string): string {
+  return dayFormat.format(new Date(iso))
 }
 
 export function dateTime(iso: string): string {
@@ -42,4 +48,9 @@ export function indiaToday(): string {
 /** Tell other parts of the screen (like today's total) that bills changed. */
 export function notifyBillsChanged() {
   window.dispatchEvent(new Event('pos:bills-changed'))
+}
+
+/** "1 bill", "3 bills"; words like "dish" pass their plural: plural(2, 'dish', 'dishes'). */
+export function plural(n: number, word: string, many = `${word}s`): string {
+  return `${n} ${n === 1 ? word : many}`
 }

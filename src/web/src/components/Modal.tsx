@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { Icon } from './Icon'
 
 interface Props {
   title: string
@@ -8,7 +9,7 @@ interface Props {
   wide?: boolean
 }
 
-/** Dialog over the screen. Esc or a tap outside closes it. */
+/** Dialog over the screen. Esc, the ✕ button or a tap outside closes it. */
 export function Modal({ title, subtitle, onClose, children, wide }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -28,8 +29,15 @@ export function Modal({ title, subtitle, onClose, children, wide }: Props) {
   return (
     <div className="overlay" ref={ref} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`modal${wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
-        <h2>{title}</h2>
-        {subtitle && <p className="modal-sub">{subtitle}</p>}
+        <div className="modal-head">
+          <div>
+            <h2>{title}</h2>
+            {subtitle && <p className="modal-sub">{subtitle}</p>}
+          </div>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close" tabIndex={-1}>
+            <Icon name="close" />
+          </button>
+        </div>
         {children}
       </div>
     </div>

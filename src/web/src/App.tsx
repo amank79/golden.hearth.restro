@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Icon, type IconName } from './components/Icon'
 import { PrintPreview } from './components/PrintPreview'
+import { ShortcutsHelp } from './components/ShortcutsHelp'
 import { Toaster } from './components/Toaster'
 import { toast } from './components/toast'
 import { api, errorText } from './lib/api'
-import { time } from './lib/bills'
+import { dateTime, day, indiaToday, plural, time } from './lib/bills'
 import { rupees } from './lib/money'
-import type { Bill, PrintOutput, Settings, TodaySummary } from './lib/types'
+import type { BackupStatus, Bill, BillSummary, PrintOutput, Settings, TodaySummary } from './lib/types'
 import { BillingScreen } from './screens/billing/BillingScreen'
 import { BillsScreen } from './screens/history/BillsScreen'
 import { MenuScreen } from './screens/menu/MenuScreen'
@@ -14,11 +15,11 @@ import { SettingsScreen } from './screens/SettingsScreen'
 
 type ScreenId = 'billing' | 'bills' | 'menu' | 'settings'
 
-const SCREENS: { id: ScreenId; label: string; icon: IconName; sub: string }[] = [
-  { id: 'billing', label: 'Billing', icon: 'billing', sub: 'Add dishes, print the bill, take payment' },
-  { id: 'bills', label: 'Bill history', icon: 'bills', sub: "Find, reprint or cancel bills · today's total" },
-  { id: 'menu', label: 'Menu', icon: 'menu', sub: 'Dishes, prices and what is available today' },
-  { id: 'settings', label: 'Settings', icon: 'settings', sub: 'Restaurant details, GST and bill footer' },
+const SCREENS: { id: ScreenId; label: string; icon: IconName }[] = [
+  { id: 'billing', label: 'Billing', icon: 'billing' },
+  { id: 'bills', label: 'Bill history', icon: 'bills' },
+  { id: 'menu', label: 'Menu', icon: 'menu' },
+  { id: 'settings', label: 'Settings', icon: 'settings' },
 ]
 
 function currentScreen(): ScreenId {
@@ -32,7 +33,7 @@ function useClock() {
     const t = window.setInterval(() => setNow(new Date()), 15000)
     return () => window.clearInterval(t)
   }, [])
-  return time(now.toISOString())
+  return { time: time(now.toISOString()), day: day(now.toISOString()) }
 }
 
 /** Badge letters from the restaurant name, skipping "The": "The Golden Hearth Restaurant" -> "GH". */
@@ -41,27 +42,58 @@ function initials(name: string | undefined) {
   return (words.slice(0, 2).map((w) => w[0]).join('') || 'R').toUpperCase()
 }
 
+/** Backup state for the status bar: green when recent, amber when overdue, red when the last one failed. */
+function BackupPill({ status }: { status: BackupStatus | null }) {
+  if (!status) return null
+  if (status.lastResult && !status.lastResult.success)
+    return <a className="status bad" href="#settings" title={status.lastResult.messages.join('\n')}><Icon name="alert" /><span>Backup failed</span></a>
+  if (!status.newestBackupAt || status.overdue)
+    return <a className="status warn" href="#settings" title="Open Settings to back up now"><Icon name="alert" /><span>{status.newestBackupAt ? 'Backup overdue' : 'No backup yet'}</span></a>
+  const at = status.newestBackupAt
+  const label = at.slice(0, 10) === indiaToday() ? time(at) : dateTime(at)
+  return <a className="status ok" href="#settings" title={`Last backup ${dateTime(at)}`}><Icon name="shield" /><span>Backed up {label}</span></a>
+}
+
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>(currentScreen)
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [connected, setConnected] = useState(true)
+  const [today, setToday] = useState<TodaySummary | null>(null)
+  const [openCount, setOpenCount] = useState(0)
+  const [backup, setBackup] = useState<BackupStatus | null>(null)
+  const [help, setHelp] = useState(false)
   const clock = useClock()
 
-  const [today, setToday] = useState<TodaySummary | null>(null)
-
   const loadToday = useCallback(() => {
-    api.get<TodaySummary>('/bills/today').then(setToday, () => {})
+    api.get<TodaySummary>('/bills/today').then(
+      (t) => {
+        setToday(t)
+        setConnected(true)
+      },
+      () => setConnected(false),
+    )
+    api.get<BillSummary[]>('/bills/open').then((b) => setOpenCount(b.length), () => {})
+  }, [])
+
+  const loadBackup = useCallback(() => {
+    api.get<BackupStatus>('/backup/status').then(setBackup, () => {})
   }, [])
 
   useEffect(() => {
     loadToday()
-    const t = window.setInterval(loadToday, 60000)
+    loadBackup()
+    const t = window.setInterval(loadToday, 30000)
+    const b = window.setInterval(loadBackup, 5 * 60000)
     window.addEventListener('pos:bills-changed', loadToday)
+    window.addEventListener('pos:backup-changed', loadBackup)
     return () => {
       window.clearInterval(t)
+      window.clearInterval(b)
       window.removeEventListener('pos:bills-changed', loadToday)
+      window.removeEventListener('pos:backup-changed', loadBackup)
     }
-  }, [loadToday])
+  }, [loadToday, loadBackup])
 
   const [preview, setPreview] = useState<{ output: PrintOutput; printed: boolean } | null>(null)
 
@@ -98,45 +130,66 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [loadSettings])
 
-  const meta = SCREENS.find((s) => s.id === screen)!
+  // F1 (or ? outside a text box) shows the keyboard shortcuts on every screen.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const inField = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
+      if (e.key === 'F1' || (e.key === '?' && !inField && !document.querySelector('.overlay'))) {
+        e.preventDefault()
+        setHelp(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const gstinMissing = settings !== null && settings.taxMode === 'Regular' && !settings.gstin.trim()
 
   return (
     <div className="app">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-logo">{initials(settings?.name)}</div>
-          <div style={{ minWidth: 0 }}>
-            <b>{settings?.name ?? 'Restaurant POS'}</b>
-            <small>Billing &amp; Menu</small>
-          </div>
-        </div>
+      <nav className="rail" aria-label="Screens">
+        <div className="rail-logo" title={settings?.name}>{initials(settings?.name)}</div>
         {SCREENS.map((s) => (
-          <button key={s.id} className={`nav-btn${s.id === screen ? ' active' : ''}`} onClick={() => (window.location.hash = s.id)}>
+          <a key={s.id} className={`rail-btn${s.id === screen ? ' active' : ''}`} href={`#${s.id}`} aria-current={s.id === screen ? 'page' : undefined}>
             <Icon name={s.icon} />
             {s.label}
-          </button>
+            {s.id === 'billing' && openCount > 0 && <span className="rail-badge" title={`${plural(openCount, 'open bill')}`}>{openCount}</span>}
+          </a>
         ))}
-        {today && (
-          <div className="side-foot">
-            Today's total
-            <b>{rupees(today.totalPaise)}</b>
-            {today.billCount} bills{today.openCount > 0 && ` · ${today.openCount} open`}
-          </div>
-        )}
-      </aside>
+        <div className="rail-foot">
+          <button className="rail-btn" onClick={() => setHelp(true)} title="Keyboard shortcuts (F1)">
+            <Icon name="keyboard" />
+            Keys
+          </button>
+        </div>
+      </nav>
 
-      <main>
-        <header className="topbar">
-          <div>
-            <h1>{meta.label}</h1>
-            <p>{meta.sub}</p>
-          </div>
-          <div className="right">
-            <span className="pill ok" title="Runs on this laptop">Works without internet</span>
-            <span className="clock">{clock}</span>
+      <div className="main">
+        <header className="appbar">
+          <div className="appbar-name">{settings?.name ?? 'Restaurant POS'}</div>
+          <div className="appbar-right">
+            {!connected && (
+              <span className="status bad" title="The billing program is not answering. Restart the laptop or open the Restaurant POS shortcut again.">
+                <Icon name="alert" /><span>Not connected</span>
+              </span>
+            )}
+            {gstinMissing && (
+              <a className="status warn" href="#settings" title="Bills are printed as Tax Invoice without a GSTIN. Add it in Settings.">
+                <Icon name="alert" /><span>GSTIN missing</span>
+              </a>
+            )}
+            <BackupPill status={backup} />
+            {today && (
+              <a className="today" href="#bills" title="Open bill history">
+                <b>{rupees(today.totalPaise)}</b>
+                <small>Today · {plural(today.billCount, 'bill')}</small>
+              </a>
+            )}
+            <span className="clock"><b>{clock.time}</b><small>{clock.day}</small></span>
           </div>
         </header>
-        <div className="view" style={screen === 'billing' ? { padding: 0 } : undefined}>
+
+        <main className={`view${screen === 'billing' ? ' full' : ''}`}>
           {loadError ? (
             <div className="error-box">
               {loadError} <button className="btn small" onClick={() => { setLoadError(null); loadSettings() }}>Try again</button>
@@ -148,12 +201,13 @@ export default function App() {
               {screen === 'billing' && <BillingScreen onPrint={printBill} onPreview={previewBill} />}
               {screen === 'bills' && <BillsScreen onPrint={printBill} onPreview={previewBill} />}
               {screen === 'menu' && <MenuScreen settings={settings} />}
-              {screen === 'settings' && <SettingsScreen settings={settings} onSaved={setSettings} />}
+              {screen === 'settings' && <SettingsScreen settings={settings} onSaved={setSettings} backup={backup} />}
             </>
           )}
-        </div>
-      </main>
+        </main>
+      </div>
       {preview && <PrintPreview output={preview.output} printed={preview.printed} onClose={() => setPreview(null)} />}
+      {help && <ShortcutsHelp onClose={() => setHelp(false)} />}
       <Toaster />
     </div>
   )

@@ -15,7 +15,7 @@ export function BillTotals({ bill, onDiscount, compact }: Props) {
   return (
     <div className="totals">
       <div><span>Items total</span><span>{rupees(bill.subtotalPaise)}</span></div>
-      <div>
+      {(bill.discountPaise > 0 || onDiscount) && <div>
         <span>
           Discount{discountLabel}
           {onDiscount && (
@@ -23,7 +23,7 @@ export function BillTotals({ bill, onDiscount, compact }: Props) {
           )}
         </span>
         <span>{bill.discountPaise ? `− ${rupees(bill.discountPaise)}` : '—'}</span>
-      </div>
+      </div>}
       {bill.discountReason && !compact && <div style={{ fontSize: 12.5 }}><span>Reason: {bill.discountReason}</span></div>}
       {bill.discountPaise > 0 && <div><span>Taxable value</span><span>{rupees(bill.taxablePaise)}</span></div>}
       {bill.taxMode === 'Regular' && compact

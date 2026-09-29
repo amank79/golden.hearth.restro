@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BillTotals } from '../../components/BillTotals'
 import { Icon } from '../../components/Icon'
-import { Modal } from '../../components/Modal'
 import { toast } from '../../components/toast'
 import { api, errorText } from '../../lib/api'
-import { billLabel, dateTime, indiaToday, methodLabel, notifyBillsChanged } from '../../lib/bills'
-import { dishName } from '../../lib/menuSearch'
-import { rupees } from '../../lib/money'
+import { billLabel, dateTime, indiaToday, methodLabel, notifyBillsChanged, plural } from '../../lib/bills'
+import { rupees, rupeesShort } from '../../lib/money'
 import type { Bill, BillPage, BillStatus, BillSummary, CancelResult, TodaySummary } from '../../lib/types'
 import { CancelDialog } from '../billing/CancelDialog'
 
@@ -19,7 +17,7 @@ const PAGE = 50
 const STATUSES: { value: BillStatus | ''; label: string }[] = [
   { value: '', label: 'All' },
   { value: 'Paid', label: 'Paid' },
-  { value: 'Open', label: 'Open' },
+  { value: 'Open', label: 'Open / not paid' },
   { value: 'Cancelled', label: 'Cancelled' },
 ]
 
@@ -29,7 +27,13 @@ function StatusPill({ b }: { b: Pick<BillSummary, 'status' | 'billNo'> }) {
   return <span className="pill amber">{b.billNo ? 'Printed, not paid' : 'Open'}</span>
 }
 
-/** Bill history with search, today's total, bill details, reprint and cancel. */
+function yesterday(): string {
+  const d = new Date(`${indiaToday()}T12:00:00`)
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
+/** Bill history: today's totals, search and filters, and the chosen bill with reprint and cancel. */
 export function BillsScreen({ onPrint, onPreview }: Props) {
   const [today, setToday] = useState<TodaySummary | null>(null)
   const [q, setQ] = useState('')
@@ -77,114 +81,138 @@ export function BillsScreen({ onPrint, onPreview }: Props) {
   }
 
   const byMethod = (m: string) => today?.byMethod.find((x) => x.method === m)?.amountPaise ?? 0
+  const setDates = (f: string, t: string) => {
+    setFrom(f)
+    setTo(t)
+  }
+  const isToday = from === indiaToday() && to === indiaToday()
+  const isYesterday = from === yesterday() && to === yesterday()
 
   return (
-    <>
+    <div className="page">
+      <div className="page-head">
+        <div>
+          <h1>Bill history</h1>
+          <p>Find any bill, print it again, or cancel it. Cancelled bills stay here.</p>
+        </div>
+      </div>
+
       {today && (
-        <div className="stat-chips">
-          <div className="stat-chip"><b>{rupees(today.totalPaise)}</b><span>Today's total · {today.billCount} bills</span></div>
-          <div className="stat-chip"><b>{rupees(byMethod('Cash'))}</b><span>Cash</span></div>
-          <div className="stat-chip"><b>{rupees(byMethod('Upi'))}</b><span>UPI</span></div>
-          <div className="stat-chip"><b>{rupees(byMethod('Card'))}</b><span>Card</span></div>
-          {today.unpaidPaise > 0 && <div className="stat-chip"><b>{rupees(today.unpaidPaise)}</b><span>Printed, not paid yet</span></div>}
-          <div className="stat-chip"><b>{today.cancelledCount}</b><span>Cancelled today</span></div>
+        <div className="stats">
+          <div className="stat main"><span>Today's total</span><b>{rupees(today.totalPaise)}</b><span>{plural(today.billCount, 'bill')}</span></div>
+          <div className="stat"><span><Icon name="cash" />Cash</span><b>{rupees(byMethod('Cash'))}</b></div>
+          <div className="stat"><span><Icon name="upi" />UPI</span><b>{rupees(byMethod('Upi'))}</b></div>
+          <div className="stat"><span><Icon name="card" />Card</span><b>{rupees(byMethod('Card'))}</b></div>
+          {today.unpaidPaise > 0 && <div className="stat warn"><span>Printed, not paid</span><b>{rupees(today.unpaidPaise)}</b></div>}
+          <div className="stat"><span><Icon name="cancel" />Cancelled</span><b>{today.cancelledCount}</b></div>
         </div>
       )}
 
-      <div className="history-bar">
+      <div className="filters">
         <label className="search">
           <Icon name="search" />
           <input placeholder="Bill no. (e.g. 123), table or dish…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+          {q && <button className="icon-btn" onClick={() => setQ('')} aria-label="Clear search"><Icon name="close" /></button>}
         </label>
-        <label className="row" style={{ gap: 6 }}>From <input type="date" className="input" style={{ width: 160 }} value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-        <label className="row" style={{ gap: 6 }}>To <input type="date" className="input" style={{ width: 160 }} value={to} onChange={(e) => setTo(e.target.value)} /></label>
-        <button className="btn small" onClick={() => { setFrom(''); setTo('') }}>All dates</button>
+        <button className={`chip${isToday ? ' on' : ''}`} onClick={() => setDates(indiaToday(), indiaToday())}>Today</button>
+        <button className={`chip${isYesterday ? ' on' : ''}`} onClick={() => setDates(yesterday(), yesterday())}>Yesterday</button>
+        <button className={`chip${!from && !to ? ' on' : ''}`} onClick={() => setDates('', '')}>All dates</button>
+        <label className="date">From <input type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+        <label className="date">To <input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} /></label>
       </div>
-      <div className="chipbar" style={{ marginBottom: 12 }}>
+      <div className="chipbar" style={{ marginBottom: 12, flex: 'none' }}>
         {STATUSES.map((s) => (
           <button key={s.label} className={`chip${status === s.value ? ' on' : ''}`} onClick={() => setStatus(s.value)}>{s.label}</button>
         ))}
+        {page && <span className="muted" style={{ alignSelf: 'center', marginLeft: 'auto', fontSize: 14 }}>{plural(page.total, 'bill')} found</span>}
       </div>
 
-      <div className="card" style={{ overflow: 'auto' }}>
-        <table className="list-table">
-          <thead>
-            <tr>
-              <th>Bill no.</th>
-              <th>Date / time</th>
-              <th>Table</th>
-              <th className="num">Items</th>
-              <th className="num">Total</th>
-              <th>Paid by</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {page?.items.map((b) => (
-              <tr key={b.id} className="clickable" onClick={() => void open(b.id)}>
-                <td><b>{b.billNo ?? '—'}</b></td>
-                <td>{dateTime(b.finalisedAt ?? b.openedAt)}</td>
-                <td>{billLabel(b)}</td>
-                <td className="num">{b.itemCount}</td>
-                <td className="num"><b>{rupees(b.totalPaise)}</b></td>
-                <td>{b.paymentMethods.map(methodLabel).join(' + ')}</td>
-                <td><StatusPill b={b} /></td>
+      <div className="history">
+        <div className="card">
+          <table className="list-table">
+            <thead>
+              <tr>
+                <th>Bill no.</th>
+                <th>Time</th>
+                <th>Table</th>
+                <th className="num">Total</th>
+                <th>Paid by</th>
+                <th>Status</th>
               </tr>
-            ))}
-            {page && page.items.length === 0 && <tr><td colSpan={7} className="empty">No bills found.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-      {page && page.items.length < page.total && (
-        <div className="row" style={{ justifyContent: 'center', marginTop: 12 }}>
-          <button className="btn" onClick={() => void more()}>Show more ({page.total - page.items.length} left)</button>
+            </thead>
+            <tbody>
+              {page?.items.map((b) => (
+                <tr key={b.id} className={`clickable${detail?.id === b.id ? ' sel' : ''}`} onClick={() => void open(b.id)}>
+                  <td><b>{b.billNo ?? '—'}</b></td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{dateTime(b.finalisedAt ?? b.openedAt)}</td>
+                  <td>{billLabel(b)}</td>
+                  <td className="num"><b>{rupees(b.totalPaise)}</b></td>
+                  <td>{b.paymentMethods.map(methodLabel).join(' + ')}</td>
+                  <td><StatusPill b={b} /></td>
+                </tr>
+              ))}
+              {page && page.items.length === 0 && <tr><td colSpan={6} className="empty">No bills found. Try “All dates”.</td></tr>}
+            </tbody>
+          </table>
+          {page && page.items.length < page.total && (
+            <div className="row" style={{ justifyContent: 'center', padding: 12 }}>
+              <button className="btn" onClick={() => void more()}>Show more ({page.total - page.items.length} left)</button>
+            </div>
+          )}
         </div>
-      )}
 
-      {detail && !cancelling && (
-        <Modal title={detail.billNo ? `Bill ${detail.billNo}` : billLabel(detail)} onClose={() => setDetail(null)} wide>
-          <div className="detail-grid">
-            <div><span>Table: </span>{billLabel(detail)}</div>
-            <div><span>Status: </span><StatusPill b={detail} /></div>
-            <div><span>Opened: </span>{dateTime(detail.openedAt)}</div>
-            <div><span>Printed: </span>{detail.finalisedAt ? `${dateTime(detail.finalisedAt)} (${detail.printCount}×)` : 'not yet'}</div>
-            <div><span>Document: </span>{detail.documentTitle}</div>
-            <div><span>Paid: </span>{detail.payments.length ? detail.payments.map((p) => `${methodLabel(p.method)} ${rupees(p.amountPaise)}`).join(', ') : '—'}</div>
-            {detail.status === 'Cancelled' && (
-              <div style={{ gridColumn: '1 / -1', color: 'var(--red)' }}>
-                <b>Cancelled</b> {detail.cancelledAt && dateTime(detail.cancelledAt)} · Reason: {detail.cancelReason}
+        <aside className="card detail" aria-label="Bill details">
+          {!detail ? (
+            <div className="empty"><Icon name="receipt" /><br />Tap a bill in the list to see it here.</div>
+          ) : (
+            <>
+              <div className="detail-body">
+                <div className="detail-head">
+                  <h2>{detail.billNo ? `Bill ${detail.billNo}` : billLabel(detail)} <StatusPill b={detail} /></h2>
+                  <div className="detail-meta">
+                    <span>Table</span><div>{billLabel(detail)}</div>
+                    <span>Opened</span><div>{dateTime(detail.openedAt)}</div>
+                    <span>Printed</span><div>{detail.finalisedAt ? `${dateTime(detail.finalisedAt)} · ${detail.printCount}×` : 'not yet'}</div>
+                    <span>Document</span><div>{detail.documentTitle}</div>
+                    <span>Paid</span><div>{detail.payments.length ? detail.payments.map((p) => `${methodLabel(p.method)} ${rupees(p.amountPaise)}`).join(' + ') : '—'}</div>
+                  </div>
+                </div>
+                {detail.status === 'Cancelled' && (
+                  <div className="detail-cancelled">
+                    <b>Cancelled</b> {detail.cancelledAt && dateTime(detail.cancelledAt)} · {detail.cancelReason}
+                  </div>
+                )}
+                <div className="detail-lines">
+                  {detail.lines.map((l) => (
+                    <div className="detail-line" key={l.id}>
+                      <div>
+                        {l.itemName}{l.variantName !== 'Regular' && ` (${l.variantName})`}
+                        <small>{l.qty} × {rupeesShort(l.unitPricePaise)}{l.note && ` · ${l.note}`}</small>
+                      </div>
+                      <div className="num">{rupees(l.amountPaise)}</div>
+                    </div>
+                  ))}
+                  {detail.lines.length === 0 && <div className="empty">No dishes on this bill.</div>}
+                </div>
+                {detail.lines.length > 0 && <BillTotals bill={detail} />}
               </div>
-            )}
-          </div>
-          <div className="card" style={{ overflow: 'hidden' }}>
-            <table className="list-table">
-              <thead><tr><th>Dish</th><th className="num">Qty</th><th className="num">Rate</th><th className="num">Amount</th></tr></thead>
-              <tbody>
-                {detail.lines.map((l) => (
-                  <tr key={l.id}>
-                    <td>{dishName(l.itemName, l.variantName)}{l.note && <small className="muted"> · {l.note}</small>}</td>
-                    <td className="num">{l.qty}</td>
-                    <td className="num">{rupees(l.unitPricePaise)}</td>
-                    <td className="num">{rupees(l.amountPaise)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <BillTotals bill={detail} />
-          </div>
-          <div className="modal-actions">
-            {detail.status === 'Open' && <a className="btn" href={`#billing/${detail.id}`}>Open in Billing</a>}
-            {detail.status !== 'Cancelled' && <button className="btn danger" onClick={() => setCancelling(true)}>Cancel bill</button>}
-            {detail.lines.length > 0 && <button className="btn" onClick={() => onPreview(detail)}>View bill</button>}
-            {detail.status !== 'Cancelled' && detail.lines.length > 0 && (
-              <button className="btn dark" onClick={() => void reprint()}>
-                <Icon name="print" />{detail.printCount > 0 ? 'Reprint (DUPLICATE)' : 'Print'}
-              </button>
-            )}
-            <button className="btn" onClick={() => setDetail(null)}>Close</button>
-          </div>
-        </Modal>
-      )}
+              <div className="detail-actions">
+                {detail.status !== 'Cancelled' && detail.lines.length > 0 && (
+                  <button className="btn dark wide" onClick={() => void reprint()}>
+                    <Icon name="print" />{detail.printCount > 0 ? 'Print again (DUPLICATE)' : 'Print'}
+                  </button>
+                )}
+                {detail.lines.length > 0 && <button className="btn" onClick={() => onPreview(detail)}><Icon name="eye" />View bill</button>}
+                {detail.status === 'Open' && <a className="btn" href={`#billing/${detail.id}`}><Icon name="open" />Open in Billing</a>}
+                {detail.status !== 'Cancelled' && (
+                  <button className="btn danger" onClick={() => setCancelling(true)}><Icon name="cancel" />Cancel bill</button>
+                )}
+              </div>
+            </>
+          )}
+        </aside>
+      </div>
+
       {detail && cancelling && (
         <CancelDialog
           bill={detail}
@@ -203,6 +231,6 @@ export function BillsScreen({ onPrint, onPreview }: Props) {
           }}
         />
       )}
-    </>
+    </div>
   )
 }

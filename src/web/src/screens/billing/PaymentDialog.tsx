@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Icon, type IconName } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { toast } from '../../components/toast'
 import { billLabel } from '../../lib/bills'
@@ -11,6 +12,8 @@ interface Props {
   onConfirm: (payments: { method: PaymentMethod; amountPaise: number }[], changePaise: number) => void
   onClose: () => void
 }
+
+const METHOD_ICON: Record<PaymentMethod, IconName> = { Cash: 'cash', Upi: 'upi', Card: 'card' }
 
 /** Next round amounts a customer is likely to hand over for this total. */
 function cashSuggestions(total: number): number[] {
@@ -62,7 +65,7 @@ export function PaymentDialog({ bill, initialMethod, onConfirm, onClose }: Props
   return (
     <Modal title={`Payment · ${billLabel(bill)}`} onClose={onClose}>
       <form className="form" onSubmit={submit}>
-        <div className="pay-sum big"><span>Total to pay</span><span>{rupees(total)}</span></div>
+        <div className="pay-total"><span>Total to pay</span><b>{rupees(total)}</b></div>
         <div className="seg">
           <button type="button" className={split ? '' : 'on'} onClick={() => setSplit(false)}>One method</button>
           <button type="button" className={split ? 'on' : ''} onClick={() => setSplit(true)}>Split payment</button>
@@ -72,8 +75,8 @@ export function PaymentDialog({ bill, initialMethod, onConfirm, onClose }: Props
           <>
             <div className="pay-methods">
               {PAYMENT_METHODS.map((m) => (
-                <button type="button" key={m.value} className={`btn big${method === m.value ? ' green' : ''}`} onClick={() => setMethod(m.value)}>
-                  {m.label}
+                <button type="button" key={m.value} className={`pay-method${method === m.value ? ' on' : ''}`} onClick={() => setMethod(m.value)} aria-pressed={method === m.value}>
+                  <Icon name={METHOD_ICON[m.value]} />{m.label}
                 </button>
               ))}
             </div>
@@ -89,7 +92,7 @@ export function PaymentDialog({ bill, initialMethod, onConfirm, onClose }: Props
                     <button type="button" key={a} className="chip" onClick={() => setReceived(paiseToInput(a))}>{rupeesShort(a)}</button>
                   ))}
                 </div>
-                {change !== null && (
+                {change !== null && received !== '' && (
                   <div className={`pay-sum big ${change < 0 ? 'bad' : 'ok'}`}>
                     <span>{change < 0 ? 'Short by' : 'Give back change'}</span>
                     <span>{rupees(Math.abs(change))}</span>
@@ -97,17 +100,19 @@ export function PaymentDialog({ bill, initialMethod, onConfirm, onClose }: Props
                 )}
               </>
             )}
+            {method === 'Upi' && <p className="note" style={{ margin: 0 }}>Check that the money has arrived on the restaurant phone before you confirm.</p>}
+            {method === 'Card' && <p className="note" style={{ margin: 0 }}>Confirm after the card machine prints “Approved”.</p>}
           </>
         ) : (
           <div>
             {PAYMENT_METHODS.map((m) => (
               <div className="pay-line" key={m.value}>
-                <b>{m.label}</b>
+                <b><Icon name={METHOD_ICON[m.value]} />{m.label}</b>
                 <input className="input" value={parts[m.value]} onChange={(e) => setParts((p) => ({ ...p, [m.value]: e.target.value }))} inputMode="decimal" placeholder="0" aria-label={`${m.label} amount`} />
                 <button type="button" className="btn small" onClick={() => fillRest(m.value)} disabled={remaining === 0}>Rest</button>
               </div>
             ))}
-            <div className={`pay-sum ${remaining === 0 ? 'ok' : 'bad'}`} style={{ marginTop: 10 }}>
+            <div className={`pay-sum ${remaining === 0 ? 'ok' : 'bad'}`} style={{ marginTop: 12 }}>
               <span>{remaining === 0 ? 'Fully paid' : remaining > 0 ? 'Still to pay' : 'Too much'}</span>
               <span>{rupees(Math.abs(remaining))}</span>
             </div>
@@ -116,7 +121,7 @@ export function PaymentDialog({ bill, initialMethod, onConfirm, onClose }: Props
 
         <div className="modal-actions">
           <button type="button" className="btn" onClick={onClose}>Back</button>
-          <button className="btn green big" autoFocus={method !== 'Cash' && !split}>
+          <button className="btn primary big" autoFocus={method !== 'Cash' && !split}>
             {split ? 'Confirm payment' : `Paid by ${PAYMENT_METHODS.find((m) => m.value === method)!.label}`} <kbd>Enter</kbd>
           </button>
         </div>
