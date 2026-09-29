@@ -23,6 +23,8 @@ const paths = {
   check: '<path d="m5 12 5 5 9-10"/>',
   open: '<path d="M7 17 17 7M8 7h9v9"/>',
   receipt: '<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  hearth: '<path d="M4 21V11a8 8 0 0 1 16 0v10"/><path d="M2 21h20"/><path d="M12 18.5c-1.9 0-3.2-1.3-3.2-3 0-1.9 1.7-2.9 2.2-5 1.6 1.1 4.2 3 4.2 5 0 1.7-1.3 3-3.2 3z"/>',
+  percent: '<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
 } as const
 
 export type IconName = keyof typeof paths
