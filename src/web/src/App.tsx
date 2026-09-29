@@ -35,6 +35,12 @@ function useClock() {
   return time(now.toISOString())
 }
 
+/** Badge letters from the restaurant name, skipping "The": "The Golden Hearth Restaurant" -> "GH". */
+function initials(name: string | undefined) {
+  const words = (name ?? '').split(/\s+/).filter((w) => w && !/^(the|a|an)$/i.test(w))
+  return (words.slice(0, 2).map((w) => w[0]).join('') || 'R').toUpperCase()
+}
+
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>(currentScreen)
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -98,7 +104,7 @@ export default function App() {
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-logo">{(settings?.name || 'R').charAt(0).toUpperCase()}</div>
+          <div className="brand-logo">{initials(settings?.name)}</div>
           <div style={{ minWidth: 0 }}>
             <b>{settings?.name ?? 'Restaurant POS'}</b>
             <small>Billing &amp; Menu</small>
