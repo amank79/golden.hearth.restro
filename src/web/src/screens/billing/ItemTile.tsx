@@ -1,4 +1,4 @@
-import { FoodMark } from '../../components/Icon'
+import { FoodMark, Icon } from '../../components/Icon'
 import { rupeesShort } from '../../lib/money'
 import type { MenuItem, Variant } from '../../lib/types'
 
@@ -12,8 +12,9 @@ interface Props {
 }
 
 /**
- * One dish on the billing grid. A single-price dish is one big button. A dish with two sizes shows both
- * (Half ₹160 / Full ₹260) so the right size is one tap; three or more sizes open the size picker.
+ * One dish on the billing grid. A single-price dish is one big button with the price and a + along the bottom.
+ * A dish with two sizes has two big buttons along the bottom (HALF ₹160 | FULL ₹260), so the right size is one tap;
+ * tapping the name asks for the size. Three or more sizes open the size picker.
  */
 export function ItemTile({ item, inBill, highlighted, onAdd }: Props) {
   const cls = `tile${item.isAvailable ? '' : ' na'}${highlighted ? ' hl' : ''}`
@@ -38,8 +39,11 @@ export function ItemTile({ item, inBill, highlighted, onAdd }: Props) {
     return (
       <button className={cls} onClick={() => onAdd(item, item.variants.length === 1 ? item.variants[0] : undefined)}>
         {badge}
-        {head}
-        <span className="tile-price">{price}</span>
+        <span className="tile-main">{head}</span>
+        <span className="tile-foot">
+          <span className="tile-price">{price}</span>
+          {item.isAvailable && <span className="tile-plus" aria-hidden="true"><Icon name="plus" /></span>}
+        </span>
       </button>
     )
   }

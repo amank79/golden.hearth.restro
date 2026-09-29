@@ -251,37 +251,48 @@ export function BillingScreen({ onPrint, onPreview }: Props) {
 
   return (
     <div className="billing">
-      <div className="billing-left">
-        <div className="strip" aria-label="Open bills">
-          <button className="strip-new" onClick={() => setDialog({ kind: 'table', mode: 'new' })}>
-            <Icon name="table" />Dine-in <kbd>F3</kbd>
-          </button>
-          <button className="strip-new" onClick={() => void newBill('Takeaway', null)}>
-            <Icon name="bag" />Takeaway <kbd>F4</kbd>
-          </button>
-          <div className="strip-bills">
-            {openBills.map((b) => (
-              <button
-                key={b.id}
-                className={`obill${bill?.id === b.id ? ' on' : ''}${b.billNo ? ' printed' : ''}`}
-                onClick={() => void selectBill(b.id)}
-                title={b.billNo ? 'Printed, waiting for payment' : 'Open bill'}
-              >
-                <span className="obill-ic"><Icon name={b.orderType === 'DineIn' ? 'table' : 'bag'} /></span>
-                <span>
-                  <b>{billLabel(b)}</b>
-                  <small>
-                    {b.billNo && <span className="tag">Printed · </span>}
-                    {rupeesShort(b.totalPaise)} · {minutesAgo(b.openedAt, now)}
-                  </small>
-                </span>
-              </button>
-            ))}
-            {openBills.length === 0 && <div className="strip-empty">No open bills. Start one, or just tap a dish.</div>}
-          </div>
+      {/* Open bills as tickets across the whole width; the two big buttons start a new one. */}
+      <div className="tickets" aria-label="Open bills">
+        <button className="new-bill" onClick={() => setDialog({ kind: 'table', mode: 'new' })}>
+          <Icon name="table" />Dine-in <kbd>F3</kbd>
+        </button>
+        <button className="new-bill" onClick={() => void newBill('Takeaway', null)}>
+          <Icon name="bag" />Takeaway <kbd>F4</kbd>
+        </button>
+        <div className="ticket-list">
+          {openBills.map((b) => (
+            <button
+              key={b.id}
+              className={`ticket${bill?.id === b.id ? ' on' : ''}${b.billNo ? ' printed' : ''}`}
+              onClick={() => void selectBill(b.id)}
+              title={b.billNo ? 'Printed, waiting for payment' : 'Open bill'}
+            >
+              <b>{billLabel(b)}</b>
+              <small>
+                {b.billNo && <span className="tag">Printed · </span>}
+                {rupeesShort(b.totalPaise)} · {minutesAgo(b.openedAt, now)}
+              </small>
+            </button>
+          ))}
+          {openBills.length === 0 && <div className="tickets-empty">No open bills. Start one, or just tap a dish.</div>}
         </div>
+        {openBills.length > 0 && <div className="tickets-count">{openBills.length} open</div>}
+      </div>
 
-        <section className="items" aria-label="Dishes">
+      <div className="counter">
+        <nav className="catlist" aria-label="Categories">
+          <div className="catlist-head">Menu</div>
+          <button className={`catrow${cat === 'all' && !searching ? ' on' : ''}`} onClick={() => { setCat('all'); setQuery('') }}>
+            All dishes<span className="n">{menu?.items.length ?? ''}</span>
+          </button>
+          {menu?.categories.filter((c) => counts.has(c.id)).map((c) => (
+            <button key={c.id} className={`catrow${cat === c.id && !searching ? ' on' : ''}`} onClick={() => { setCat(c.id); setQuery('') }}>
+              {c.name}<span className="n">{counts.get(c.id) ?? 0}</span>
+            </button>
+          ))}
+        </nav>
+
+        <section className="dishes" aria-label="Dishes">
           <label className="search">
             <Icon name="search" />
             <input
@@ -299,16 +310,6 @@ export function BillingScreen({ onPrint, onPreview }: Props) {
               <kbd>F2</kbd>
             )}
           </label>
-          <nav className="cats" aria-label="Categories">
-            <button className={`cat${cat === 'all' && !searching ? ' on' : ''}`} onClick={() => { setCat('all'); setQuery('') }}>
-              All<span className="n">{menu?.items.length ?? ''}</span>
-            </button>
-            {menu?.categories.filter((c) => counts.has(c.id)).map((c) => (
-              <button key={c.id} className={`cat${cat === c.id && !searching ? ' on' : ''}`} onClick={() => { setCat(c.id); setQuery('') }}>
-                {c.name}<span className="n">{counts.get(c.id) ?? 0}</span>
-              </button>
-            ))}
-          </nav>
           {searching && (
             <div className="search-hint">
               {top
@@ -331,23 +332,23 @@ export function BillingScreen({ onPrint, onPreview }: Props) {
             )}
           </div>
         </section>
-      </div>
 
-      <BillPanel
-        bill={bill}
-        now={now}
-        flash={flash}
-        onNewDineIn={() => setDialog({ kind: 'table', mode: 'new' })}
-        onNewTakeaway={() => void newBill('Takeaway', null)}
-        onEditLine={(line) => setDialog({ kind: 'line', line })}
-        onQty={(line, qty) => void setQty(line, qty)}
-        onDiscount={() => setDialog({ kind: 'discount' })}
-        onPreview={() => bill && onPreview(bill)}
-        onChangeTable={() => setDialog({ kind: 'table', mode: 'change' })}
-        onCancel={() => setDialog({ kind: 'cancel' })}
-        onPrint={() => void print()}
-        onPay={pay}
-      />
+        <BillPanel
+          bill={bill}
+          now={now}
+          flash={flash}
+          onNewDineIn={() => setDialog({ kind: 'table', mode: 'new' })}
+          onNewTakeaway={() => void newBill('Takeaway', null)}
+          onEditLine={(line) => setDialog({ kind: 'line', line })}
+          onQty={(line, qty) => void setQty(line, qty)}
+          onDiscount={() => setDialog({ kind: 'discount' })}
+          onPreview={() => bill && onPreview(bill)}
+          onChangeTable={() => setDialog({ kind: 'table', mode: 'change' })}
+          onCancel={() => setDialog({ kind: 'cancel' })}
+          onPrint={() => void print()}
+          onPay={pay}
+        />
+      </div>
 
       {dialog?.kind === 'variant' && (
         <VariantPicker

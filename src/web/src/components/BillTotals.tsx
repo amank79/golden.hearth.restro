@@ -6,10 +6,12 @@ interface Props {
   onDiscount?: () => void
   /** Billing panel: one GST row per rate and no reason row, to leave room for the dishes. */
   compact?: boolean
+  /** Leave out the grand total row (the billing receipt shows it in its own band). */
+  hideGrand?: boolean
 }
 
 /** Items total, discount, taxable value, CGST/SGST per rate, round off and grand total. */
-export function BillTotals({ bill, onDiscount, compact }: Props) {
+export function BillTotals({ bill, onDiscount, compact, hideGrand }: Props) {
   const discountLabel =
     bill.discountKind === 'Percent' ? ` (${percent(bill.discountValue)}%)` : bill.discountKind === 'Amount' ? '' : ''
   return (
@@ -46,7 +48,7 @@ export function BillTotals({ bill, onDiscount, compact }: Props) {
       {bill.roundOffPaise !== 0 && (
         <div><span>Round off</span><span>{bill.roundOffPaise > 0 ? '+ ' : '− '}{rupees(Math.abs(bill.roundOffPaise))}</span></div>
       )}
-      <div className="grand"><span>Total to pay</span><span>{rupees(bill.totalPaise)}</span></div>
+      {!hideGrand && <div className="grand"><span>Total to pay</span><span>{rupees(bill.totalPaise)}</span></div>}
     </div>
   )
 }
