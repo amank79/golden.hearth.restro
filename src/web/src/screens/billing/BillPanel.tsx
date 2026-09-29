@@ -62,16 +62,16 @@ export function BillPanel({ bill, now, flash, onNewDineIn, onNewTakeaway, onEdit
   return (
     <section className="receipt-col" aria-label="Current bill">
       <div className="paper">
-        <header className="r-head">
+        <header className="r-head split">
+          <div className="r-title">{billLabel(bill)}</div>
           <div className="r-kicker">
-            {bill.orderType === 'DineIn' ? 'Dine-in' : 'Takeaway'} · started {minutesAgo(bill.openedAt, now)}
+            {bill.orderType === 'DineIn' ? 'Dine-in' : 'Takeaway'}
+            <small>started {minutesAgo(bill.openedAt, now)}</small>
           </div>
-          <div className="r-title">
-            {billLabel(bill)}
-            {bill.isFinalised && <span className="pill blue">Printed · waiting for payment</span>}
-          </div>
-          {bill.billNo && <div className="r-sub">Bill {bill.billNo}</div>}
         </header>
+        {bill.billNo && (
+          <div className="r-sub"><span className="pill blue">Printed · waiting for payment</span> Bill {bill.billNo}</div>
+        )}
         <div className="r-tools">
           {editable && !empty && (
             <button className={`rtool${hasDiscount ? ' on' : ''}`} onClick={onDiscount} title="Discount with a reason">
