@@ -25,7 +25,7 @@ public abstract class Entity
 public class RestaurantSettings : Entity
 {
     public int Id { get; set; } = 1;
-    public string Name { get; set; } = "Your Restaurant";
+    public string Name { get; set; } = "The Golden Hearth Restaurant";
     public string Address { get; set; } = "";
     public string Phone { get; set; } = "";
     public string Gstin { get; set; } = "";

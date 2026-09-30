@@ -174,3 +174,19 @@ export interface PrintOutput {
   text: string
   escPosBase64: string
 }
+
+export interface BackupResult {
+  success: boolean
+  fileName: string | null
+  at: string
+  messages: string[]
+}
+
+export interface BackupStatus {
+  /** Local laptop time of the newest backup file, or null if there is none. */
+  newestBackupAt: string | null
+  overdue: boolean
+  folder: string
+  extraFolders: { path: string; connected: boolean }[]
+  lastResult: BackupResult | null
+}

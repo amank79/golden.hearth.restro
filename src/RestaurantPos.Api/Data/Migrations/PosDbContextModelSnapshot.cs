@@ -425,7 +425,7 @@ namespace RestaurantPos.Api.Data.Migrations
                             FssaiNo = "",
                             GstRateBp = 500,
                             Gstin = "",
-                            Name = "Your Restaurant",
+                            Name = "The Golden Hearth Restaurant",
                             Phone = "",
                             PublicId = new Guid("6f1c8c52-3a4e-4b8e-9d0a-5b1f2e7c9a01"),
                             TaxMode = "Regular",
