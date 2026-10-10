@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Icon, type IconName } from './components/Icon'
+import { Monogram, Wordmark } from './components/Logo'
 import { PrintPreview } from './components/PrintPreview'
 import { ShortcutsHelp } from './components/ShortcutsHelp'
 import { Toaster } from './components/Toaster'
@@ -34,12 +35,6 @@ function useClock() {
     return () => window.clearInterval(t)
   }, [])
   return { time: time(now.toISOString()), day: day(now.toISOString()) }
-}
-
-/** Badge letters from the restaurant name, skipping "The": "The Golden Hearth Restaurant" -> "GH". */
-function initials(name: string | undefined) {
-  const words = (name ?? '').split(/\s+/).filter((w) => w && !/^(the|a|an)$/i.test(w))
-  return (words.slice(0, 2).map((w) => w[0]).join('') || 'R').toUpperCase()
 }
 
 /** Backup state for the status bar: green when recent, amber when overdue, red when the last one failed. */
@@ -148,7 +143,7 @@ export default function App() {
   return (
     <div className="app">
       <nav className="rail" aria-label="Screens">
-        <div className="rail-logo" title={settings?.name}>{initials(settings?.name)}</div>
+        <Monogram className="rail-logo" />
         {SCREENS.map((s) => (
           <a key={s.id} className={`rail-btn${s.id === screen ? ' active' : ''}`} href={`#${s.id}`} aria-current={s.id === screen ? 'page' : undefined}>
             <Icon name={s.icon} />
@@ -166,7 +161,7 @@ export default function App() {
 
       <div className="main">
         <header className="appbar">
-          <div className="appbar-name">{settings?.name ?? 'Restaurant POS'}</div>
+          <Wordmark className="appbar-logo" title={settings?.name ?? 'The Golden Hearth'} />
           <div className="appbar-right">
             {!connected && (
               <span className="status bad" title="The billing program is not answering. Restart the laptop or open the Restaurant POS shortcut again.">

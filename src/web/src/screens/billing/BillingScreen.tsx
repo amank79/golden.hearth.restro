@@ -118,6 +118,11 @@ export function BillingScreen({ onPrint, onPreview }: Props) {
     return () => window.clearInterval(t)
   }, [loadMenu, loadOpen, selectBill])
 
+  // Keep the chosen bill visible in the open-bills strip when there are more bills than fit.
+  useEffect(() => {
+    document.querySelector('.obill.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [bill?.id, openBills])
+
   const focusSearch = () => window.setTimeout(() => searchRef.current?.focus(), 0)
 
   const addLine = (billId: number, variant: Variant, qty: number) =>

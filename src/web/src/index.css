@@ -22,6 +22,8 @@
   --deep-ink: #f3e5c0;
   --deep-muted: #9fbaac;
   --grand-ink: #0f3d2e;
+  --logo-ink: #0f3d2e;
+  --logo-sub: #8a6526;
 
   /* Antique gold */
   --gold: #b8914a;
@@ -83,6 +85,8 @@
   --deep-ink: #f1dfb2;
   --deep-muted: #b6a792;
   --grand-ink: #2c231c;
+  --logo-ink: #593b14;
+  --logo-sub: #86642a;
   --cta-shadow: 0 1px 2px #1b151133, 0 6px 16px -6px #1b151166;
 }
 
@@ -104,6 +108,8 @@
   --deep-ink: #ecd49a;
   --deep-muted: #9a9386;
   --grand-ink: #e8cf94;
+  --logo-ink: #f5da99;
+  --logo-sub: #f3e5cc;
   --gold: #c9a45c;
   --gold-hi: #e8cf94;
   --gold-text: #e0c07b;
@@ -141,7 +147,7 @@ input, select, textarea { font-family: inherit; font-size: 15px; color: inherit;
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 h1, h2, h3 { letter-spacing: -0.01em; }
 /* Playfair's default digits sit on and below the line ("Table 4" drops); use capital-height digits everywhere. */
-.appbar-name, .rail-logo, .page-head h1, .bill-title, .bill-start h3, .modal-head h2, .variant-opts b, .tables button, .stat b, .detail-head h2, .panel h2 { font-variant-numeric: lining-nums; }
+.page-head h1, .bill-title, .bill-start h3, .modal-head h2, .variant-opts b, .tables button, .stat b, .detail-head h2, .panel h2 { font-variant-numeric: lining-nums; }
 svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 kbd { font-family: var(--font); font-size: 11px; font-weight: 600; background: var(--soft); border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 6px; padding: 0 5px; color: var(--muted); line-height: 1.5; }
 /* Keys shown on coloured buttons take the button's own text colour. */
@@ -153,7 +159,8 @@ kbd { font-family: var(--font); font-size: 11px; font-weight: 600; background: v
 /* App frame: signature-colour navigation rail, ivory status bar */
 .app { display: grid; grid-template-columns: 86px minmax(0, 1fr); height: 100vh; }
 .rail { background: var(--rail-bg); box-shadow: inset -1px 0 0 var(--rail-line); display: flex; flex-direction: column; gap: 4px; padding: 16px 10px 12px; min-height: 0; }
-.rail-logo { width: 50px; height: 50px; margin: 0 auto 18px; border-radius: 50%; border: 1.5px solid transparent; background: linear-gradient(var(--rail-solid), var(--rail-solid)) padding-box, var(--gold-grad) border-box; color: var(--gold-hi); font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: .5px; display: grid; place-items: center; flex: none; box-shadow: 0 0 0 4px #d8b86a14; }
+/* The restaurant's logos (components/Logo.tsx): the TGH monogram on the rail, the wordmark in the status bar. */
+.rail-logo { width: 54px; height: 54px; margin: 0 auto 16px; flex: none; color: var(--gold-hi); }
 .rail-btn { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 2px 9px; border-radius: 14px; color: var(--rail-ink); font-size: 11.5px; font-weight: 500; letter-spacing: .02em; text-decoration: none; text-align: center; line-height: 1.15; transition: background .15s, color .15s; }
 .rail-btn svg.i { width: 23px; height: 23px; stroke-width: 1.5; }
 .rail-btn:hover { background: #ffffff0d; color: #fff; }
@@ -164,8 +171,7 @@ kbd { font-family: var(--font); font-size: 11px; font-weight: 600; background: v
 
 .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .appbar { display: flex; align-items: center; gap: 10px; height: 62px; padding: 0 24px; background: var(--panel); border-bottom: 1px solid var(--line); flex: none; }
-.appbar-name { display: flex; align-items: center; gap: 12px; font-family: var(--display); font-weight: 600; font-size: 21px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.appbar-name::before { content: ''; width: 7px; height: 7px; transform: rotate(45deg); background: var(--gold-grad); flex: none; }
+.appbar-logo { height: 46px; width: auto; flex: none; display: block; }
 .appbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
 .status { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 99px; font-size: 12.5px; font-weight: 600; background: var(--soft); color: var(--muted); text-decoration: none; border: 1px solid var(--line); white-space: nowrap; }
 .status svg.i { width: 15px; height: 15px; }
@@ -364,6 +370,7 @@ button.tile:hover, .tile:has(.tile-main:hover) { border-color: var(--gold-line);
 .act.print:hover:not(:disabled) { filter: none; background: var(--gold-soft); }
 .act:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
 .bill-start { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center; color: var(--muted); line-height: 1.5; }
+.bill-start-logo { width: 84px; height: 84px; color: var(--gold-text); margin-bottom: 6px; }
 .bill-start > svg.i { width: 68px; height: 68px; padding: 18px; border-radius: 50%; background: var(--gold-soft); color: var(--gold-text); stroke-width: 1.4; margin-bottom: 4px; box-shadow: inset 0 0 0 1px var(--gold-line); }
 .bill-start h3 { margin: 0; color: var(--ink); font-family: var(--display); font-size: 26px; font-weight: 600; letter-spacing: 0; }
 .bill-start .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 12px; }
@@ -539,5 +546,6 @@ button.tile:hover, .tile:has(.tile-main:hover) { border-color: var(--gold-line);
 @media print {
   @page { margin: 0; }
   #root { display: none !important; }
-  .print-only { display: block; margin: 0; padding: 2mm; font-family: var(--mono); font-size: 11px; line-height: 1.3; color: #000; white-space: pre; }
+  /* 48 characters must fit the ~72 mm printable width of an 80 mm roll: Consolas is 0.55em wide, so 2.6mm text is about 69 mm. */
+  .print-only { display: block; margin: 0; padding: 2mm 1mm; font-family: var(--mono); font-size: 2.6mm; line-height: 1.3; color: #000; white-space: pre; }
 }

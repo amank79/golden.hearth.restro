@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { BillTotals } from '../../components/BillTotals'
 import { Icon } from '../../components/Icon'
+import { Monogram } from '../../components/Logo'
 import { billLabel, minutesAgo, plural } from '../../lib/bills'
 import { rupees, rupeesShort } from '../../lib/money'
 import type { Bill, BillLine, PaymentMethod } from '../../lib/types'
@@ -35,7 +36,7 @@ export function BillPanel({ bill, now, flash, onNewDineIn, onNewTakeaway, onEdit
     return (
       <section className="bill" aria-label="Current bill">
         <div className="bill-start">
-          <Icon name="receipt" />
+          <Monogram className="bill-start-logo" />
           <h3>Start a bill</h3>
           <div>Choose dine-in or takeaway, or simply tap a dish.</div>
           <div className="btns">
