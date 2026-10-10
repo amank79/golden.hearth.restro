@@ -16,6 +16,14 @@ INSTALL (first time) or UPDATE (new version)
   (use the pen drive's letter). The pen drive can stay plugged in; if it is missing, that copy
   is skipped and the normal backup still happens.
 
+OWNER PIN
+  Set it in Restaurant POS > Settings > Owner PIN (4 to 6 digits). After that, changing the menu,
+  giving a discount, cancelling a bill and changing settings ask for the PIN. Billing, payments,
+  printing and the "available today" switch never need it. Once entered, the PIN stays unlocked
+  for 5 minutes after the last change; tap "Owner unlocked - Lock" at the top to lock straight away.
+  Forgot the PIN? Start menu > "Restaurant POS - reset owner PIN" (or "Reset PIN.cmd" here) and
+  click "Yes". Only the PIN is removed; bills and menu are kept.
+
 WHERE THINGS ARE
   App:       C:\Program Files\RestaurantPos
   Data:      C:\ProgramData\RestaurantPos\data\pos.db

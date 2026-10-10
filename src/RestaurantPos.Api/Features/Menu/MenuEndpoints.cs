@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using RestaurantPos.Api.Data;
 using RestaurantPos.Api.Features.Settings;
+using RestaurantPos.Api.Features.Owner;
 
 namespace RestaurantPos.Api.Features.Menu;
 
@@ -55,7 +56,7 @@ public static partial class MenuEndpoints
             db.Categories.Add(category);
             await db.SaveChangesAsync();
             return Results.Created($"/api/menu/categories/{category.Id}", CategoryDto.From(category));
-        });
+        }).RequireOwner();
 
         g.MapPut("/categories/{id:int}", async (int id, CategoryInput input, PosDbContext db) =>
         {
@@ -68,7 +69,7 @@ public static partial class MenuEndpoints
             if (input.SortOrder is { } sort) category.SortOrder = sort;
             await db.SaveChangesAsync();
             return Results.Ok(CategoryDto.From(category));
-        });
+        }).RequireOwner();
 
         // Deactivate or bring back a category. Its dishes are hidden from billing while it is inactive.
         g.MapPut("/categories/{id:int}/active", async (int id, ActiveInput input, PosDbContext db) =>
@@ -82,7 +83,7 @@ public static partial class MenuEndpoints
             category.IsActive = input.IsActive;
             await db.SaveChangesAsync();
             return Results.Ok(CategoryDto.From(category));
-        });
+        }).RequireOwner();
 
         g.MapPost("/items", async (MenuItemInput input, PosDbContext db) =>
         {
@@ -101,7 +102,7 @@ public static partial class MenuEndpoints
             db.MenuItems.Add(item);
             await db.SaveChangesAsync();
             return Results.Created($"/api/menu/items/{item.Id}", MenuItemDto.From(item));
-        });
+        }).RequireOwner();
 
         g.MapGet("/items/{id:int}", async (int id, PosDbContext db) =>
         {
@@ -142,7 +143,7 @@ public static partial class MenuEndpoints
             }
             await db.SaveChangesAsync();
             return Results.Ok(MenuItemDto.From(item));
-        });
+        }).RequireOwner();
 
         // "Not available today" switch (MENU-5).
         g.MapPut("/items/{id:int}/availability", async (int id, AvailabilityInput input, PosDbContext db) =>
@@ -167,7 +168,7 @@ public static partial class MenuEndpoints
             item.IsActive = input.IsActive;
             await db.SaveChangesAsync();
             return Results.Ok(MenuItemDto.From(item));
-        });
+        }).RequireOwner();
 
         return api;
     }

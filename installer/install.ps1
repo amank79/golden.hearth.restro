@@ -62,7 +62,7 @@ try {
     robocopy $Source $AppDir /MIR /R:3 /W:2 /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "Copying the app files failed (robocopy code $LASTEXITCODE)." }
     # Support files live next to the app so the Start menu shortcuts keep working after the zip is deleted.
-    foreach ($f in @('version.txt', 'collect-logs.ps1', 'restore.ps1', 'README.txt')) {
+    foreach ($f in @('version.txt', 'collect-logs.ps1', 'restore.ps1', 'reset-pin.ps1', 'README.txt')) {
         $p = Join-Path $PSScriptRoot $f
         if (Test-Path $p) { Copy-Item $p $AppDir -Force }
     }
@@ -145,6 +145,11 @@ try {
     $lnk = $shell.CreateShortcut((Join-Path $startMenu 'Restaurant POS - collect logs for support.lnk'))
     $lnk.TargetPath = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $lnk.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$AppDir\collect-logs.ps1`""
+    $lnk.IconLocation = Join-Path $AppDir 'app.ico'
+    $lnk.Save()
+    $lnk = $shell.CreateShortcut((Join-Path $startMenu 'Restaurant POS - reset owner PIN.lnk'))
+    $lnk.TargetPath = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $lnk.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$AppDir\reset-pin.ps1`""
     $lnk.IconLocation = Join-Path $AppDir 'app.ico'
     $lnk.Save()
     if (-not $edge) { Write-Host '    Microsoft Edge not found: the shortcut opens the default browser.' -ForegroundColor Yellow }

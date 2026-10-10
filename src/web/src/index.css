@@ -178,6 +178,18 @@ kbd { font-family: var(--font); font-size: 11px; font-weight: 600; background: v
 .status.ok { background: var(--green-soft); color: var(--green); border-color: transparent; }
 .status.warn { background: var(--amber-soft); color: var(--amber-text); border-color: transparent; }
 .status.bad { background: var(--red-soft); color: var(--red); border-color: transparent; }
+button.status { cursor: pointer; font-family: inherit; }
+.pin-form { display: grid; gap: 10px; justify-items: center; }
+.pin-input { width: 100%; max-width: 280px; height: 60px; text-align: center; font-size: 30px; letter-spacing: .5em; padding-left: .5em; border-radius: 14px; border: 1px solid var(--line-2); background: var(--panel); color: var(--ink); }
+.pin-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+.pin-hint, .pin-error { margin: 0; font-size: 13px; color: var(--muted); text-align: center; min-height: 18px; }
+.pin-error { color: var(--red); font-weight: 600; }
+.keypad { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; margin-top: 4px; }
+.keypad button { height: 60px; border-radius: 14px; border: 1px solid var(--line); background: var(--soft); font-family: var(--display); font-size: 24px; font-weight: 600; font-variant-numeric: lining-nums; color: var(--ink); display: grid; place-items: center; transition: background .15s, border-color .15s; }
+.keypad button:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-soft); }
+.keypad button.ok { background: var(--deep-grad); color: var(--deep-ink); border-color: transparent; }
+.keypad button.ok:disabled { opacity: .45; }
+.keypad button.back { color: var(--muted); }
 a.status:hover { filter: brightness(0.97); }
 .today { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; text-decoration: none; color: inherit; border-left: 1px solid var(--line); margin-left: 6px; padding-left: 18px; }
 .today b { font-size: 15.5px; font-weight: 700; font-variant-numeric: tabular-nums; }

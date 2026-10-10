@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using RestaurantPos.Api.Data;
 using RestaurantPos.Api.Features.Billing;
+using RestaurantPos.Api.Features.Owner;
 
 namespace RestaurantPos.Api.Features.Settings;
 
@@ -71,7 +72,7 @@ public static partial class SettingsEndpoints
             await db.SaveChangesAsync();
             await BillService.RecalculateOpenBillsAsync(db, s);
             return Results.Ok(SettingsDto.From(s));
-        });
+        }).RequireOwner();
 
         // The table list is changed from its own panel and saved straight away.
         g.MapPut("/tables", async (TablesInput input, PosDbContext db) =>
@@ -89,7 +90,7 @@ public static partial class SettingsEndpoints
             s.Tables = string.Join('\n', tables);
             await db.SaveChangesAsync();
             return Results.Ok(SettingsDto.From(s));
-        });
+        }).RequireOwner();
 
         return api;
     }

@@ -7,6 +7,7 @@ using RestaurantPos.Api.Data;
 using RestaurantPos.Api.Features;
 using RestaurantPos.Api.Features.Billing;
 using RestaurantPos.Api.Features.Menu;
+using RestaurantPos.Api.Features.Owner;
 using RestaurantPos.Api.Features.Printing;
 using RestaurantPos.Api.Features.Settings;
 using RestaurantPos.Api.Hosting;
@@ -29,6 +30,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<RuleExceptionHandler>();
 builder.Services.AddScoped<BillService>();
+builder.Services.AddSingleton<OwnerSessions>();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddDbContext<PosDbContext>(o => o.UseSqlite(paths.ConnectionString));
 builder.Services.AddPosBackup(builder.Configuration);
@@ -49,6 +51,19 @@ try
         using var scope = app.Services.CreateScope();
         await DevSampleMenu.SeedIfEmptyAsync(scope.ServiceProvider.GetRequiredService<PosDbContext>());
     }
+
+    // Forgotten owner PIN: "RestaurantPos.Api.exe --reset-owner-pin" (installer\Reset PIN.cmd, needs administrator rights).
+    if (args.Contains("--reset-owner-pin"))
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PosDbContext>();
+        var settings = await db.GetSettingsAsync();
+        settings.OwnerPinHash = null;
+        await db.SaveChangesAsync();
+        app.Logger.LogWarning("Owner PIN was reset from the command line");
+        Console.WriteLine("The owner PIN is removed. Set a new one in Restaurant POS > Settings.");
+        return;
+    }
 }
 catch (Exception e)
 {
@@ -68,6 +83,7 @@ api.MapGet("/health", () => Results.Ok(new { status = "ok", version }));
 api.MapSettingsEndpoints();
 api.MapMenuEndpoints();
 api.MapBillEndpoints();
+api.MapOwnerEndpoints();
 api.MapPrintEndpoints();
 app.MapBackupEndpoints();
 

@@ -40,6 +40,15 @@ try {
     try { $menu = Invoke-RestMethod "$Url/api/menu?includeInactive=true" }
     catch { throw "Restaurant POS is not running at $Url. Install it first (Install.cmd)." }
 
+    # Menu changes need the owner PIN once one is set.
+    if ((Invoke-RestMethod "$Url/api/owner/status").pinSet) {
+        $secure = Read-Host 'Owner PIN' -AsSecureString
+        $pin = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure))
+        try { $unlock = Send 'Post' '/owner/unlock' @{ pin = $pin } }
+        catch { throw "The PIN was not accepted: $(if ($_.ErrorDetails.Message) { ($_.ErrorDetails.Message | ConvertFrom-Json).title } else { $_.Exception.Message })" }
+        $headers['X-Owner-Token'] = $unlock.token
+    }
+
     # Check the whole file before adding anything, so a mistake does not leave half a menu.
     $plans = foreach ($r in $rows) {
         $name = $r.Dish.Trim()

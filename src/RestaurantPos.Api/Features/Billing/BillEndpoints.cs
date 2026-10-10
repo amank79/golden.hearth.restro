@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RestaurantPos.Api.Data;
+using RestaurantPos.Api.Features.Owner;
 
 namespace RestaurantPos.Api.Features.Billing;
 
@@ -38,7 +39,7 @@ public static class BillEndpoints
         g.MapDelete("/{id:int}/lines/{lineId:int}", async (int id, int lineId, BillService bills) =>
             ToDto(await bills.RemoveLineAsync(id, lineId)));
 
-        g.MapPut("/{id:int}/discount", async (int id, DiscountInput input, BillService bills) => ToDto(await bills.SetDiscountAsync(id, input)));
+        g.MapPut("/{id:int}/discount", async (int id, DiscountInput input, BillService bills) => ToDto(await bills.SetDiscountAsync(id, input))).RequireOwner();
 
         g.MapPost("/{id:int}/finalise", async (int id, BillService bills) => ToDto(await bills.FinaliseAsync(id)));
 
@@ -48,7 +49,7 @@ public static class BillEndpoints
         {
             var (cancelled, copy) = await bills.CancelAsync(id, input);
             return new CancelResult(ToDto(cancelled), copy is null ? null : ToDto(copy));
-        });
+        }).RequireOwner();
 
         // Bill history with search (bill number, table or dish) and India-date range, newest first.
         g.MapGet("", async (PosDbContext db, string? q, DateOnly? from, DateOnly? to, BillStatus? status, int skip = 0, int take = 50) =>

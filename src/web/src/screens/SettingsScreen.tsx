@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Field } from '../components/Field'
 import { Icon } from '../components/Icon'
 import { toast } from '../components/toast'
 import { api, ApiError, errorText } from '../lib/api'
 import { dateTime } from '../lib/bills'
+import { clearOwnerSession, setOwnerSession } from '../lib/owner'
 import { parsePercent, percent } from '../lib/money'
 import { applyTheme, savedTheme, THEMES, type Theme } from '../lib/theme'
 import type { BackupResult, BackupStatus, Settings } from '../lib/types'
@@ -62,6 +63,95 @@ function BackupPanel({ backup }: { backup: BackupStatus | null }) {
       <button type="button" className="btn dark" onClick={() => void runNow()} disabled={running}>
         <Icon name="shield" />{running ? 'Backing up…' : 'Back up now'}
       </button>
+    </div>
+  )
+}
+
+/** Set, change or turn off the owner PIN. Changing or turning it off asks for the current PIN first (the server decides). */
+function OwnerPinPanel() {
+  const [pinSet, setPinSet] = useState<boolean | null>(null)
+  const [pin, setPin] = useState('')
+  const [repeat, setRepeat] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const load = () => api.get<{ pinSet: boolean }>('/owner/status').then((s) => setPinSet(s.pinSet), () => {})
+  useEffect(() => {
+    void load()
+  }, [])
+
+  const digits = (v: string) => v.replace(/\D/g, '').slice(0, 6)
+
+  const save = async () => {
+    if (pin.length < 4) return toast('The PIN must be 4 to 6 digits.', 'error')
+    if (pin !== repeat) return toast('The two PINs are not the same. Type them again.', 'error')
+    setBusy(true)
+    try {
+      const r = await api.put<{ token: string; expiresAt: string }>('/owner/pin', { pin })
+      setOwnerSession(r.token, r.expiresAt)
+      toast(pinSet ? 'Owner PIN changed.' : 'Owner PIN set. Keep it safe: it is needed for menu changes, discounts and cancelling.')
+      setPin('')
+      setRepeat('')
+      setPinSet(true)
+      window.dispatchEvent(new Event('pos:owner-changed'))
+    } catch (e) {
+      toast(errorText(e), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const turnOff = async () => {
+    setBusy(true)
+    try {
+      await api.del('/owner/pin')
+      clearOwnerSession()
+      setPinSet(false)
+      toast('Owner PIN turned off. Anyone can now change the menu and cancel bills.')
+      window.dispatchEvent(new Event('pos:owner-changed'))
+    } catch (e) {
+      toast(errorText(e), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onEnter = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      void save()
+    }
+  }
+
+  return (
+    <div className="card panel">
+      <h2><Icon name="shield" />Owner PIN</h2>
+      <p className="muted">
+        Needed to change the menu, give a discount, cancel a bill or change these settings. Billing, payments and the
+        “available today” switch never need it.
+      </p>
+      {pinSet === false && <p className="warn" style={{ marginTop: 0 }}>No PIN is set yet, so anyone can change the menu and cancel bills.</p>}
+      {pinSet && <div className="kv" style={{ marginBottom: 14 }}><span>Status</span><div><span className="pill green">PIN is on</span></div></div>}
+      <div className="form">
+        <div className="form-grid">
+          <Field label={pinSet ? 'New PIN' : 'PIN'} hint="4 to 6 digits">
+            <input type="password" inputMode="numeric" autoComplete="new-password" value={pin} onChange={(e) => setPin(digits(e.target.value))} onKeyDown={onEnter} maxLength={6} />
+          </Field>
+          <Field label="Type it again">
+            <input type="password" inputMode="numeric" autoComplete="new-password" value={repeat} onChange={(e) => setRepeat(digits(e.target.value))} onKeyDown={onEnter} maxLength={6} />
+          </Field>
+        </div>
+        <div className="row">
+          <button type="button" className="btn dark" onClick={() => void save()} disabled={busy || pin.length < 4 || !repeat}>
+            <Icon name="shield" />{pinSet ? 'Change PIN' : 'Set PIN'}
+          </button>
+          {pinSet && (
+            <button type="button" className="btn danger" onClick={() => void turnOff()} disabled={busy}>
+              Turn off PIN
+            </button>
+          )}
+        </div>
+        {pinSet && <p className="muted" style={{ margin: 0, fontSize: 13 }}>Forgot the PIN? Run “Reset PIN.cmd” from the installer folder (needs Windows administrator permission).</p>}
+      </div>
     </div>
   )
 }
@@ -311,6 +401,7 @@ export function SettingsScreen({ settings, onSaved, backup }: Props) {
             </div>
           </div>
 
+          <OwnerPinPanel />
           <BackupPanel backup={backup} />
           <AppearancePanel />
 

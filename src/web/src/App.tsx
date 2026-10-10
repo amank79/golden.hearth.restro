@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Icon, type IconName } from './components/Icon'
 import { Monogram, Wordmark } from './components/Logo'
+import { PinPrompt } from './components/PinPrompt'
 import { PrintPreview } from './components/PrintPreview'
 import { ShortcutsHelp } from './components/ShortcutsHelp'
 import { Toaster } from './components/Toaster'
 import { toast } from './components/toast'
 import { api, errorText } from './lib/api'
 import { dateTime, day, indiaToday, plural, time } from './lib/bills'
+import { clearOwnerSession, onOwnerChange, ownerToken } from './lib/owner'
 import { rupees } from './lib/money'
 import type { BackupStatus, Bill, BillSummary, PrintOutput, Settings, TodaySummary } from './lib/types'
 import { BillingScreen } from './screens/billing/BillingScreen'
@@ -47,6 +49,42 @@ function BackupPill({ status }: { status: BackupStatus | null }) {
   const at = status.newestBackupAt
   const label = at.slice(0, 10) === indiaToday() ? time(at) : dateTime(at)
   return <a className="status ok" href="#settings" title={`Last backup ${dateTime(at)}`}><Icon name="shield" /><span>Backed up {label}</span></a>
+}
+
+/** "Owner unlocked · Lock" while the PIN is entered; a reminder until a PIN is set. */
+function OwnerPill() {
+  const [pinSet, setPinSet] = useState<boolean | null>(null)
+  const [, setTick] = useState(0)
+
+  useEffect(() => {
+    const load = () => api.get<{ pinSet: boolean }>('/owner/status').then((s) => setPinSet(s.pinSet), () => {})
+    load()
+    const offOwner = onOwnerChange(() => setTick((t) => t + 1))
+    // The unlock ends by itself after 5 idle minutes: check every few seconds so the pill goes away.
+    const t = window.setInterval(() => setTick((n) => n + 1), 5000)
+    window.addEventListener('pos:owner-changed', load)
+    return () => {
+      offOwner()
+      window.clearInterval(t)
+      window.removeEventListener('pos:owner-changed', load)
+    }
+  }, [])
+
+  const lock = async () => {
+    try {
+      await api.post('/owner/lock')
+    } catch {
+      // Locking locally is enough; the server forgets the unlock after 5 minutes anyway.
+    }
+    clearOwnerSession()
+    toast('Locked. The owner PIN is needed again.')
+  }
+
+  if (pinSet === false)
+    return <a className="status warn" href="#settings" title="Set an owner PIN in Settings so only the owner can change the menu, give discounts or cancel bills."><Icon name="alert" /><span>No owner PIN</span></a>
+  if (pinSet && ownerToken())
+    return <button type="button" className="status ok" onClick={() => void lock()} title="Owner changes are allowed. Tap to lock now."><Icon name="shield" /><span>Owner unlocked · Lock</span></button>
+  return null
 }
 
 export default function App() {
@@ -173,6 +211,7 @@ export default function App() {
                 <Icon name="alert" /><span>GSTIN missing</span>
               </a>
             )}
+            <OwnerPill />
             <BackupPill status={backup} />
             {today && (
               <a className="today" href="#bills" title="Open bill history">
@@ -203,6 +242,7 @@ export default function App() {
       </div>
       {preview && <PrintPreview output={preview.output} printed={preview.printed} onClose={() => setPreview(null)} />}
       {help && <ShortcutsHelp onClose={() => setHelp(false)} />}
+      <PinPrompt />
       <Toaster />
     </div>
   )

@@ -39,7 +39,8 @@ try {
                        (Join-Path $startMenu 'Restaurant POS.lnk'),
                        (Join-Path $startMenu 'Restaurant POS backups.lnk'),
                        (Join-Path $startMenu 'Restaurant POS logs.lnk'),
-                       (Join-Path $startMenu 'Restaurant POS - collect logs for support.lnk'))) {
+                       (Join-Path $startMenu 'Restaurant POS - collect logs for support.lnk'),
+                       (Join-Path $startMenu 'Restaurant POS - reset owner PIN.lnk'))) {
         if (Test-Path $lnk) { Remove-Item $lnk -Force }
     }
     if (Test-Path $AppDir) { Remove-Item $AppDir -Recurse -Force }
