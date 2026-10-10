@@ -66,6 +66,108 @@ function BackupPanel({ backup }: { backup: BackupStatus | null }) {
   )
 }
 
+const isNumber = (t: string) => /^\d+$/.test(t)
+
+/** The tables offered when starting a dine-in bill. Saved straight away, separately from the form below. */
+function TablesPanel({ tables, onSaved }: { tables: string[]; onSaved: (s: Settings) => void }) {
+  const [count, setCount] = useState(() => String(tables.filter(isNumber).length || ''))
+  const [name, setName] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const save = async (next: string[], message: string) => {
+    setSaving(true)
+    try {
+      onSaved(await api.put<Settings>('/settings/tables', { tables: next }))
+      toast(message)
+      return true
+    } catch (e) {
+      toast(errorText(e), 'error')
+      return false
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Numbered tables 1..n first, then the named ones ("Garden 1", "AC Hall") as they were.
+  const setNumbered = () => {
+    const n = Number(count)
+    if (!Number.isInteger(n) || n < 0 || n > 100) {
+      toast('Type how many numbered tables there are, from 0 to 100.', 'error')
+      return
+    }
+    const numbered = Array.from({ length: n }, (_, i) => String(i + 1))
+    void save([...numbered, ...tables.filter((t) => !isNumber(t))], n ? `Tables 1 to ${n} are set.` : 'Numbered tables removed.')
+  }
+
+  const add = async () => {
+    const label = name.trim()
+    if (!label) return
+    if (tables.some((t) => t.toLowerCase() === label.toLowerCase())) {
+      toast(`Table ${label} is already in the list.`, 'error')
+      return
+    }
+    if (await save([...tables, label], `Table ${label} added.`)) setName('')
+  }
+
+  return (
+    <div className="card panel">
+      <h2><Icon name="table" />Tables</h2>
+      <p className="muted">Shown when starting a dine-in bill. Changes are saved straight away.</p>
+      <div className="form">
+        <Field label="Numbered tables" hint="Makes tables 1, 2, 3 … up to this number. Named tables below are kept.">
+          <div className="row" style={{ flexWrap: 'nowrap' }}>
+            <input
+              value={count}
+              onChange={(e) => setCount(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setNumbered() } }}
+              inputMode="numeric"
+              maxLength={3}
+              style={{ maxWidth: 110 }}
+              aria-label="Number of tables"
+            />
+            <button type="button" className="btn" onClick={setNumbered} disabled={saving}>
+              Set 1 to {count || '…'}
+            </button>
+          </div>
+        </Field>
+        <Field label="Add a named table" hint="For example Garden 1, AC Hall or Family room. Up to 20 letters.">
+          <div className="row" style={{ flexWrap: 'nowrap' }}>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void add() } }}
+              maxLength={20}
+              placeholder="Garden 1"
+            />
+            <button type="button" className="btn" onClick={() => void add()} disabled={saving || !name.trim()}>
+              <Icon name="plus" />Add
+            </button>
+          </div>
+        </Field>
+        <div>
+          <p className="picker-label">{tables.length ? `${tables.length} tables · tap ✕ to remove` : 'No tables yet'}</p>
+          <div className="table-list">
+            {tables.map((t) => (
+              <span key={t} className="chip">
+                {t}
+                <button
+                  type="button"
+                  aria-label={`Remove table ${t}`}
+                  title={`Remove table ${t}`}
+                  disabled={saving}
+                  onClick={() => void save(tables.filter((x) => x !== t), `Table ${t} removed.`)}
+                >
+                  <Icon name="close" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** Colour palette for this laptop. Saved straight away; not part of the restaurant settings. */
 function AppearancePanel() {
   const [theme, setTheme] = useState<Theme>(savedTheme)
@@ -144,28 +246,31 @@ export function SettingsScreen({ settings, onSaved, backup }: Props) {
       </div>
 
       <div className="settings">
-        <div className="card panel">
-          <h2><Icon name="receipt" />Restaurant details</h2>
-          <p className="muted">Printed at the top and bottom of every bill.</p>
-          <div className="form">
-            <Field label="Restaurant name" error={errors.name}>
-              <input value={form.name} onChange={(e) => set('name', e.target.value)} maxLength={60} required />
-            </Field>
-            <Field label="Address" error={errors.address}>
-              <textarea value={form.address} onChange={(e) => set('address', e.target.value)} maxLength={200} rows={2} />
-            </Field>
-            <div className="form-grid">
-              <Field label="Phone" error={errors.phone}>
-                <input value={form.phone} onChange={(e) => set('phone', e.target.value)} maxLength={40} inputMode="tel" />
+        <div className="settings-col">
+          <div className="card panel">
+            <h2><Icon name="receipt" />Restaurant details</h2>
+            <p className="muted">Printed at the top and bottom of every bill.</p>
+            <div className="form">
+              <Field label="Restaurant name" error={errors.name}>
+                <input value={form.name} onChange={(e) => set('name', e.target.value)} maxLength={60} required />
               </Field>
-              <Field label="FSSAI licence no." hint="14 digits" error={errors.fssaiNo}>
-                <input value={form.fssaiNo} onChange={(e) => set('fssaiNo', e.target.value)} maxLength={14} inputMode="numeric" />
+              <Field label="Address" error={errors.address}>
+                <textarea value={form.address} onChange={(e) => set('address', e.target.value)} maxLength={200} rows={2} />
+              </Field>
+              <div className="form-grid">
+                <Field label="Phone" error={errors.phone}>
+                  <input value={form.phone} onChange={(e) => set('phone', e.target.value)} maxLength={40} inputMode="tel" />
+                </Field>
+                <Field label="FSSAI licence no." hint="14 digits" error={errors.fssaiNo}>
+                  <input value={form.fssaiNo} onChange={(e) => set('fssaiNo', e.target.value)} maxLength={14} inputMode="numeric" />
+                </Field>
+              </div>
+              <Field label="Bill footer" hint="Printed at the bottom of every bill" error={errors.billFooter}>
+                <textarea value={form.billFooter} onChange={(e) => set('billFooter', e.target.value)} maxLength={300} rows={2} />
               </Field>
             </div>
-            <Field label="Bill footer" hint="Printed at the bottom of every bill" error={errors.billFooter}>
-              <textarea value={form.billFooter} onChange={(e) => set('billFooter', e.target.value)} maxLength={300} rows={2} />
-            </Field>
           </div>
+          <TablesPanel tables={settings.tables} onSaved={onSaved} />
         </div>
 
         <div className="settings-col">

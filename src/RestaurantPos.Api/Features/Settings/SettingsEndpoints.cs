@@ -14,11 +14,15 @@ public record SettingsDto(
     string FssaiNo,
     TaxMode TaxMode,
     int GstRateBp,
-    string BillFooter)
+    string BillFooter,
+    IReadOnlyList<string>? Tables = null)
 {
     public static SettingsDto From(RestaurantSettings s) =>
-        new(s.Name, s.Address, s.Phone, s.Gstin, s.FssaiNo, s.TaxMode, s.GstRateBp, s.BillFooter);
+        new(s.Name, s.Address, s.Phone, s.Gstin, s.FssaiNo, s.TaxMode, s.GstRateBp, s.BillFooter, SettingsEndpoints.TableList(s.Tables));
 }
+
+/// <summary>The tables shown on the billing screen, in order. Saved on its own, not with PUT /settings.</summary>
+public record TablesInput(IReadOnlyList<string>? Tables);
 
 public static partial class SettingsEndpoints
 {
@@ -69,8 +73,31 @@ public static partial class SettingsEndpoints
             return Results.Ok(SettingsDto.From(s));
         });
 
+        // The table list is changed from its own panel and saved straight away.
+        g.MapPut("/tables", async (TablesInput input, PosDbContext db) =>
+        {
+            var tables = (input.Tables ?? []).Select(t => (t ?? "").Trim()).ToList();
+            var duplicate = tables.GroupBy(t => t, StringComparer.OrdinalIgnoreCase).FirstOrDefault(g => g.Count() > 1)?.Key;
+            var v = new Validation()
+                .Check(tables.Count <= MaxTables, "tables", $"There can be at most {MaxTables} tables.")
+                .Check(tables.All(t => t.Length > 0), "tables", "A table needs a name or number.")
+                .Check(tables.All(t => t.Length <= BillService.MaxTableLabel && !t.Contains('\n')), "tables", $"A table name can have at most {BillService.MaxTableLabel} characters.")
+                .Check(duplicate is null, "tables", $"Table {duplicate} is in the list twice.");
+            if (!v.IsValid) return v.Problem();
+
+            var s = await db.GetSettingsAsync();
+            s.Tables = string.Join('\n', tables);
+            await db.SaveChangesAsync();
+            return Results.Ok(SettingsDto.From(s));
+        });
+
         return api;
     }
+
+    public const int MaxTables = 100;
+
+    public static IReadOnlyList<string> TableList(string stored) =>
+        stored.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     /// <summary>The single settings row (created by the first migration).</summary>
     public static Task<RestaurantSettings> GetSettingsAsync(this PosDbContext db) =>

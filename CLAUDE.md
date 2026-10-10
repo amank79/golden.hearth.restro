@@ -13,7 +13,7 @@ Installed on the family's Windows laptop, fully offline, one user at a time.
 - **Menu management:** categories, items, Half/Full variants with their own price, veg/non-veg/egg, "not available" switch, search by name or short code.
 - **Billing:** dine-in (table number) and takeaway; several bills open at once; add items with variant, quantity and note; discount (percent or amount, with reason); GST calculation; payment by cash / UPI / card (split allowed); bill history with search and reprint; today's total.
 - **Bill printing** on an 80 mm thermal printer (ESC/POS through the Windows printer driver).
-- **Settings:** restaurant name, address, phone, GSTIN, FSSAI no., tax mode, bill footer.
+- **Settings:** restaurant name, address, phone, GSTIN, FSSAI no., tax mode, bill footer; the list of tables shown on the billing screen (numbered 1–N plus named ones like "Garden 1").
 - **Safety:** owner PIN for menu changes, cancellations and discounts; automatic daily backup of the database file.
 
 Do **not** build Phase 2/3 features (kitchen tickets, table map, waiter phones, staff logins, reports beyond today's total, QR ordering, online payment, WhatsApp) unless asked.

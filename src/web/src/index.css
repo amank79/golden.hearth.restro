@@ -397,6 +397,7 @@ button.tile:hover, .tile:has(.tile-main:hover) { border-color: var(--gold-line);
 .tables { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .tables button { min-height: 64px; border-radius: 14px; border: 1px solid var(--line); background: var(--soft); font-family: var(--display); font-weight: 600; font-size: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; transition: border-color .15s, background .15s; }
 .tables button:hover { border-color: var(--gold); background: var(--gold-soft); }
+.tables button.long { font-size: 15px; padding: 4px 6px; overflow-wrap: anywhere; }
 .tables button small { font-family: var(--font); font-size: 11.5px; font-weight: 600; }
 .tables button.busy { background: var(--gold-soft); border-color: var(--gold); color: var(--gold-text); }
 .takeaway-btn { width: 100%; margin-bottom: 18px; }
@@ -488,6 +489,11 @@ button.tile:hover, .tile:has(.tile-main:hover) { border-color: var(--gold-line);
 /* Settings */
 .settings { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .settings-col { display: grid; gap: 18px; }
+.table-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.table-list .chip { display: inline-flex; align-items: center; gap: 2px; padding-right: 5px; font-weight: 600; }
+.table-list .chip button { width: 28px; height: 28px; border-radius: 99px; display: grid; place-items: center; color: var(--muted); }
+.table-list .chip button:hover { color: var(--red); background: var(--soft); }
+.table-list .chip svg.i { width: 15px; height: 15px; }
 .panel { padding: 22px; }
 .panel h2 { margin: 0 0 4px; font-family: var(--display); font-size: 21px; font-weight: 600; letter-spacing: 0; display: flex; align-items: center; gap: 12px; }
 .panel h2 svg.i { width: 36px; height: 36px; padding: 8px; border-radius: 50%; background: var(--gold-soft); color: var(--gold-text); box-shadow: inset 0 0 0 1px var(--gold-line); }

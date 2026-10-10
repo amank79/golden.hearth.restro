@@ -6,6 +6,9 @@ INSTALL (first time) or UPDATE (new version)
   2. Double-click Install.cmd and click "Yes" when Windows asks for permission.
   3. When it says "installed and running", the billing screen opens.
      From then on, use the "Restaurant POS" icon on the desktop.
+  4. First time only: double-click "Load menu.cmd" to add the dishes from menu.csv
+     (open menu.csv in Excel to check or change prices first). Running it again skips dishes
+     that are already on the menu. After that, change dishes in the app (Menu).
   Updating keeps all bills, menu and settings. A backup is saved before every update.
 
   Extra backup copy on a pen drive (recommended): open a Command Prompt in this folder and run

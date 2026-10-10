@@ -34,6 +34,11 @@ public class RestaurantSettings : Entity
     public int GstRateBp { get; set; } = 500;
     public string BillFooter { get; set; } = "Thank you! Visit again.";
     public string? OwnerPinHash { get; set; }
+
+    /// <summary>Table labels shown on the billing screen, one per line, in order. Starts as 1–20.</summary>
+    public string Tables { get; set; } = DefaultTables;
+
+    public static readonly string DefaultTables = string.Join('\n', Enumerable.Range(1, 20));
 }
 
 public class Category : Entity

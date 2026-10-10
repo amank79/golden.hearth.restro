@@ -193,7 +193,7 @@ export default function App() {
             <div className="empty">Loading…</div>
           ) : (
             <>
-              {screen === 'billing' && <BillingScreen onPrint={printBill} onPreview={previewBill} />}
+              {screen === 'billing' && <BillingScreen tables={settings.tables} onPrint={printBill} onPreview={previewBill} />}
               {screen === 'bills' && <BillsScreen onPrint={printBill} onPreview={previewBill} />}
               {screen === 'menu' && <MenuScreen settings={settings} />}
               {screen === 'settings' && <SettingsScreen settings={settings} onSaved={setSettings} backup={backup} />}

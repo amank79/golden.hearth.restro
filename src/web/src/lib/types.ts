@@ -9,6 +9,8 @@ export interface Settings {
   taxMode: TaxMode
   gstRateBp: number
   billFooter: string
+  /** Tables shown on the billing screen, in order. */
+  tables: string[]
 }
 
 export type FoodType = 'Veg' | 'NonVeg' | 'Egg'

@@ -27,7 +27,7 @@ public class SettingsTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal("24ABCDE1234F1Z5", saved.Gstin);
 
         var again = await client.Get<SettingsDto>("/api/settings");
-        Assert.Equal(saved, again);
+        Assert.Equal(saved with { Tables = null }, again with { Tables = null });
     }
 
     [Fact]
@@ -65,5 +65,49 @@ public class SettingsTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         var response = await factory.CreateClient().GetAsync("/api/does-not-exist");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+}
+
+public class TableListTests(ApiFactory factory) : IClassFixture<ApiFactory>
+{
+    [Fact]
+    public async Task Tables_start_as_1_to_20_and_can_be_changed()
+    {
+        var client = factory.CreateClient();
+        var start = await client.Get<SettingsDto>("/api/settings");
+        Assert.Equal(Enumerable.Range(1, 20).Select(n => n.ToString()), start.Tables);
+
+        var saved = await (await client.Put("/api/settings/tables", new TablesInput([" 1 ", "2", "Garden 1", "AC Hall"]))).Read<SettingsDto>();
+        Assert.Equal(["1", "2", "Garden 1", "AC Hall"], saved.Tables);
+
+        // Saving the restaurant details does not touch the tables.
+        await client.Put("/api/settings", start with { Tables = null });
+        Assert.Equal(["1", "2", "Garden 1", "AC Hall"], (await client.Get<SettingsDto>("/api/settings")).Tables);
+
+        var none = await (await client.Put("/api/settings/tables", new TablesInput([]))).Read<SettingsDto>();
+        Assert.Empty(none.Tables!);
+
+        await client.Put("/api/settings/tables", new TablesInput(start.Tables));
+    }
+
+    [Theory]
+    [InlineData("5", "5")]
+    [InlineData("Garden", "garden")]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("A table name that is too long")]
+    public async Task Rejects_empty_long_and_duplicate_tables(params string[] tables)
+    {
+        var response = await factory.CreateClient().Put("/api/settings/tables", new TablesInput(tables));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("tables", await response.ErrorFields());
+    }
+
+    [Fact]
+    public async Task Rejects_more_than_100_tables()
+    {
+        var tables = Enumerable.Range(1, SettingsEndpoints.MaxTables + 1).Select(n => n.ToString()).ToList();
+        var response = await factory.CreateClient().Put("/api/settings/tables", new TablesInput(tables));
+        Assert.Contains("tables", await response.ErrorFields());
     }
 }

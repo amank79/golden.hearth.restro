@@ -31,6 +31,8 @@ type Dialog =
   | { kind: 'cancel' }
 
 interface Props {
+  /** Table labels from Settings, shown in the table picker. */
+  tables: string[]
   /** Prints the bill (the first print gives it its number) and shows it; returns the updated bill. */
   onPrint: (bill: Bill) => Promise<Bill | null>
   /** Shows the bill as it will print, without printing it. */
@@ -49,7 +51,7 @@ function billIdFromHash(): number | null {
 }
 
 /** Counter billing: open bills along the top, categories, dish grid with search, and the current bill. */
-export function BillingScreen({ onPrint, onPreview }: Props) {
+export function BillingScreen({ tables, onPrint, onPreview }: Props) {
   const [menu, setMenu] = useState<Menu | null>(null)
   const [openBills, setOpenBills] = useState<BillSummary[]>([])
   const [bill, setBill] = useState<Bill | null>(null)
@@ -369,6 +371,7 @@ export function BillingScreen({ onPrint, onPreview }: Props) {
         <TablePicker
           title={dialog.mode === 'change' ? 'Move to another table' : dialog.pending ? `New bill for ${dialog.pending.item.name}` : 'New dine-in bill'}
           subtitle={dialog.pending ? 'Is it takeaway or for a table? The dish is added right after.' : undefined}
+          tables={tables}
           openBills={openBills}
           currentBillId={dialog.mode === 'change' ? bill?.id : undefined}
           onClose={closeDialog}
