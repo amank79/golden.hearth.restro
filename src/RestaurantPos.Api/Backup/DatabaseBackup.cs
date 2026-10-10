@@ -17,6 +17,7 @@ public sealed partial class DatabaseBackup(
     IOptionsMonitor<BackupOptions> options, PosPaths paths, TimeProvider clock, ILogger<DatabaseBackup> log)
 {
     private const string TimeFormat = "yyyy-MM-dd_HHmmss";
+    private const string TempSuffix = ".tmp";
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     [GeneratedRegex(@"^pos-(\d{4}-\d{2}-\d{2}_\d{6})(-[a-z-]+)?\.db$")]
@@ -73,30 +74,33 @@ public sealed partial class DatabaseBackup(
         var messages = new List<string>();
         var name = $"pos-{now.ToString(TimeFormat, CultureInfo.InvariantCulture)}{(label is null ? "" : "-" + label)}.db";
         var target = Path.Combine(Folder, name);
+        var temp = target + TempSuffix;
 
         try
         {
             Directory.CreateDirectory(Folder);
-            if (File.Exists(target)) File.Delete(target);
+            DeleteLeftoverTempFiles(Folder);
 
             // VACUUM INTO writes a complete, consistent copy even while bills are being saved.
+            // It goes to a .tmp file first, so a cloud sync app never uploads a half-written or unchecked backup.
             await using (var source = new SqliteConnection(paths.ConnectionString))
             {
                 await source.OpenAsync(ct);
                 await using var cmd = source.CreateCommand();
                 cmd.CommandText = "VACUUM INTO $path";
-                cmd.Parameters.AddWithValue("$path", target);
+                cmd.Parameters.AddWithValue("$path", temp);
                 await cmd.ExecuteNonQueryAsync(ct);
             }
 
-            var check = await IntegrityCheckAsync(target, ct);
+            var check = await IntegrityCheckAsync(temp, ct);
             if (check != "ok")
             {
-                File.Delete(target);
+                File.Delete(temp);
                 messages.Add($"Backup failed the integrity check: {check}");
                 log.LogError("Backup {File} failed the integrity check: {Check}", name, check);
                 return new BackupResult(false, null, now, messages);
             }
+            File.Move(temp, target, overwrite: true);
             messages.Add($"Saved {name}");
         }
         catch (Exception e) when (e is not OperationCanceledException)
@@ -117,7 +121,10 @@ public sealed partial class DatabaseBackup(
             try
             {
                 Directory.CreateDirectory(extra);
-                File.Copy(target, Path.Combine(extra, name), overwrite: true);
+                DeleteLeftoverTempFiles(extra);
+                var extraTarget = Path.Combine(extra, name);
+                File.Copy(target, extraTarget + TempSuffix, overwrite: true);
+                File.Move(extraTarget + TempSuffix, extraTarget, overwrite: true);
                 Prune(extra);
                 messages.Add($"Copied to {extra}");
             }
@@ -151,6 +158,16 @@ public sealed partial class DatabaseBackup(
         {
             try { File.Delete(old.Path); }
             catch (IOException e) { log.LogWarning(e, "Could not delete old backup {File}", old.Path); }
+        }
+    }
+
+    // A backup interrupted by a power cut leaves a pos-*.db.tmp file behind; it is never a usable backup.
+    private void DeleteLeftoverTempFiles(string folder)
+    {
+        foreach (var file in Directory.EnumerateFiles(folder, "pos-*.db" + TempSuffix))
+        {
+            try { File.Delete(file); }
+            catch (IOException e) { log.LogWarning(e, "Could not delete unfinished backup {File}", file); }
         }
     }
 

@@ -78,6 +78,24 @@ public class BackupTests : IDisposable
     }
 
     [Fact]
+    public async Task Leaves_no_unfinished_files_and_clears_ones_from_an_interrupted_backup()
+    {
+        var cloud = Path.Combine(_root, "Golden Hearth Backup");
+        _options.ExtraFolders = [cloud];
+        Directory.CreateDirectory(BackupFolder);
+        Directory.CreateDirectory(cloud);
+        File.WriteAllText(Path.Combine(BackupFolder, "pos-2026-10-10_220000.db.tmp"), "half written");
+        File.WriteAllText(Path.Combine(cloud, "pos-2026-10-10_220000.db.tmp"), "half written");
+
+        var result = await CreateBackup().RunAsync();
+
+        Assert.True(result.Success, string.Join("; ", result.Messages));
+        Assert.Empty(Directory.GetFiles(BackupFolder, "*.tmp"));
+        Assert.Empty(Directory.GetFiles(cloud, "*.tmp"));
+        Assert.Equal(["pos-2026-10-11_223015.db"], Directory.GetFiles(cloud).Select(Path.GetFileName));
+    }
+
+    [Fact]
     public async Task Fails_cleanly_when_the_database_cannot_be_read()
     {
         var backup = new DatabaseBackup(

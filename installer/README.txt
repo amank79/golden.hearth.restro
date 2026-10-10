@@ -24,8 +24,25 @@ BACKUPS (automatic)
   - A backup is made once a day (soon after the laptop starts if it was off), and when the
     laptop shuts down if anything changed.
   - Each backup is checked after it is made. The last 30 days are kept (always at least 7).
-  - Google Drive: in Google Drive for desktop, choose Preferences > My Computer > Add folder,
-    and add C:\ProgramData\RestaurantPos\backups. The backups are then also copied online.
+
+ONLINE BACKUP WITH GOOGLE DRIVE (do this once, so the bills are safe even if the laptop is lost)
+  1. Use the restaurant's own Gmail account, and turn on 2-Step Verification for it
+     (myaccount.google.com > Security). The backups contain all bills.
+  2. Open a Command Prompt in this folder and run
+        Install.cmd -BackupFolder "C:\GoldenHearthBackup"
+     (it keeps the data; it only adds this folder for an extra copy of every backup).
+  3. Open Restaurant POS > Settings > "Back up now". The folder C:\GoldenHearthBackup now
+     has a pos-....db file, and Settings lists it under "Extra copy".
+  4. Install "Google Drive for desktop" (google.com/drive/download) and sign in with that Gmail.
+  5. Google Drive icon (bottom right) > gear > Preferences > My Computer (or "Folders from your
+     computer") > Add folder > choose C:\GoldenHearthBackup > "Sync with Google Drive" > Done > Save.
+  6. Check it worked: on drive.google.com open "Computers" > this laptop > GoldenHearthBackup.
+     The newest file should have today's date.
+  Every new backup is uploaded by itself whenever there is internet. No internet for a few days
+  is fine: the backups wait on the laptop and upload later.
+  Once a week, check step 6. If the newest file there is old, open the Google Drive app and
+  sign in again.
+  The pen drive and Google Drive copies can both be used: run step 2 once for each folder.
 
 LOGS (for fixing problems)
   - The app writes one log file per day: C:\ProgramData\RestaurantPos\logs\app-yyyyMMdd.log
@@ -42,6 +59,9 @@ RESTORE (only if the data is lost or damaged)
   The current data is kept as data\pos.before-restore-<time>.db, so nothing is thrown away.
   To restore from a pen drive:
      Restore.cmd -BackupFile "E:\RestaurantPOS-Backup\pos-2026-10-11_223015.db"
+  From Google Drive (for example on a new laptop: run Install.cmd first):
+     download the newest pos-....db from drive.google.com > Computers, then run
+     Restore.cmd -BackupFile "%USERPROFILE%\Downloads\pos-2026-10-11_223015.db"
 
 UNINSTALL
   Double-click Uninstall.cmd. The data and backups are KEPT.
