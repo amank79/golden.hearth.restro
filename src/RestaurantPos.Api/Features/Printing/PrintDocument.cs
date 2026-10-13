@@ -24,17 +24,18 @@ public class PrintDocument(int width)
     public void Center(string text, bool bold = false, PrintSize size = PrintSize.Normal) => Add(text, PrintAlign.Center, bold, size);
 
     /// <summary>Left text and right text on one line (right text wins if both do not fit).</summary>
-    public void LeftRight(string left, string right, bool bold = false)
+    public void LeftRight(string left, string right, bool bold = false, PrintSize size = PrintSize.Normal)
     {
-        var room = Width - right.Length - 1;
+        var width = WidthFor(size);
+        var room = Math.Max(1, width - right.Length - 1);
         if (left.Length > room)
         {
             // Put the left text on its own line(s), the right text on the last one.
             var parts = Wrap(left, room).ToList();
-            foreach (var p in parts.Take(parts.Count - 1)) Lines.Add(new PrintLine(p, Bold: bold));
+            foreach (var p in parts.Take(parts.Count - 1)) Lines.Add(new PrintLine(p, Bold: bold, Size: size));
             left = parts[^1];
         }
-        Lines.Add(new PrintLine(left.PadRight(Width - right.Length) + right, Bold: bold));
+        Lines.Add(new PrintLine(left.PadRight(width - right.Length) + right, Bold: bold, Size: size));
     }
 
     public void Rule(char c = '-') => Lines.Add(new PrintLine(new string(c, Width)));
@@ -68,18 +69,29 @@ public class PrintDocument(int width)
     public string ToText()
     {
         var sb = new System.Text.StringBuilder();
-        foreach (var l in Lines)
-        {
-            var text = l.Text;
-            var pad = Width - text.Length;
-            text = l.Align switch
-            {
-                PrintAlign.Center when pad > 0 => new string(' ', pad / 2) + text,
-                PrintAlign.Right when pad > 0 => new string(' ', pad) + text,
-                _ => text,
-            };
-            sb.Append(text.TrimEnd()).Append('\n');
-        }
+        foreach (var l in Lines) sb.Append(Aligned(l, Width)).Append('\n');
         return sb.ToString();
     }
+
+    /// <summary>
+    /// The receipt as lines for the screen and browser printing: each line aligned within its own width, so a
+    /// <see cref="PrintSize.Double"/> line drawn at twice the font size fills the paper like the printer's own.
+    /// </summary>
+    public IReadOnlyList<PrintTextLine> ToLines() =>
+        [.. Lines.Select(l => new PrintTextLine(Aligned(l, WidthFor(l.Size)), l.Bold, l.Size == PrintSize.Double))];
+
+    private static string Aligned(PrintLine l, int width)
+    {
+        var pad = width - l.Text.Length;
+        var text = l.Align switch
+        {
+            PrintAlign.Center when pad > 0 => new string(' ', pad / 2) + l.Text,
+            PrintAlign.Right when pad > 0 => new string(' ', pad) + l.Text,
+            _ => l.Text,
+        };
+        return text.TrimEnd();
+    }
 }
+
+/// <param name="Big">Printed at twice the normal size (half as many characters fit).</param>
+public record PrintTextLine(string Text, bool Bold, bool Big);

@@ -12,7 +12,7 @@ Installed on the family's Windows laptop, fully offline, one user at a time.
 
 - **Menu management:** categories, items, Half/Full variants with their own price, veg/non-veg/egg, "not available" switch, search by name or short code.
 - **Billing:** dine-in (table number) and takeaway; several bills open at once; add items with variant, quantity and note; discount (percent or amount, with reason); GST calculation; payment by cash / UPI / card (split allowed); bill history with search and reprint; today's total.
-- **Bill printing** on an 80 mm thermal printer (ESC/POS through the Windows printer driver).
+- **Bill printing** on an 80 mm thermal printer (family has a BonKaso BKT04): ESC/POS bytes sent RAW through the Windows spooler to the printer chosen in Settings > Bill printer (`Features/Printing/BillPrinter.cs`); with none chosen, the browser print dialog is the fallback. Tests use `FakeBillPrinter` and never print.
 - **Settings:** restaurant name, address, phone, GSTIN, FSSAI no., tax mode, bill footer; the list of tables shown on the billing screen (numbered 1–N plus named ones like "Garden 1").
 - **Safety:** owner PIN for menu changes, cancellations and discounts; automatic daily backup of the database file.
 

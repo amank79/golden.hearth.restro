@@ -2,6 +2,7 @@ using System.Net;
 using RestaurantPos.Api.Data;
 using RestaurantPos.Api.Features.Billing;
 using RestaurantPos.Api.Features.Printing;
+using RestaurantPos.Api.Features.Settings;
 
 namespace RestaurantPos.Tests;
 
@@ -86,7 +87,7 @@ public class BillPrintLayoutTests
             SGST @ 2.5%                                26.10
             Round off                                  -0.20
             ================================================
-            GRAND TOTAL                         Rs. 1,096.00
+            GRAND TOTAL Rs. 1,096.00
             ================================================
             Paid by: Cash 500.00, UPI 596.00
             ------------------------------------------------
@@ -94,6 +95,56 @@ public class BillPrintLayoutTests
 
             """;
         Assert.Equal(expected.Replace("\r", ""), text);
+    }
+
+    [Fact]
+    public void Browser_layout_is_42_characters_with_a_large_total()
+    {
+        var shop = new RestaurantSettings
+        {
+            Name = "The Golden Hearth Restaurant", Address = Shop.Address, Phone = Shop.Phone, Gstin = Shop.Gstin,
+            FssaiNo = Shop.FssaiNo, GstRateBp = Shop.GstRateBp, BillFooter = Shop.BillFooter,
+        };
+        var doc = BillPrintLayout.Build(SampleBill(), shop, duplicate: false, width: BillPrintLayout.BrowserWidth);
+        var actual = string.Join("\n", doc.ToLines().Select(l => (l.Big ? "[big] " : l.Bold ? "[b] " : "") + l.Text));
+        const string expected = """
+            [big]   THE GOLDEN HEARTH
+            [big]      RESTAURANT
+             12, Station Road, Near Bus Stand, Anand,
+                          Gujarat 388001
+                         Ph: 98250 12345
+                      GSTIN: 24ABCDE1234F1Z5
+                  FSSAI Lic. No: 10726001000123
+            ==========================================
+            [b]                TAX INVOICE
+            ------------------------------------------
+            Bill No: 2026-27/000123   Date: 11-10-2026
+            Table: 4                    Time: 08:15 PM
+            ------------------------------------------
+            [b] Item                 Qty    Rate    Amount
+            ------------------------------------------
+            Chicken Tikka          1  320.00    320.00
+            Butter Chicken         1  360.00    360.00
+              (Full)
+            Garlic Naan            3   80.00    240.00
+            Jeera Rice             1  160.00    160.00
+            Soft Drink             2   40.00     80.00
+            ------------------------------------------
+            Subtotal (8 items)                1,160.00
+            Discount (10%)                     -116.00
+            Taxable value                     1,044.00
+            CGST @ 2.5%                          26.10
+            SGST @ 2.5%                          26.10
+            Round off                            -0.20
+            ==========================================
+            [big] TOTAL    Rs. 1,096.00
+            ==========================================
+            Paid by: Cash 500.00, UPI 596.00
+            ------------------------------------------
+                     Thank you! Visit again.
+            """;
+        Assert.Equal(expected.Replace("\r", ""), actual);
+        Assert.All(doc.ToLines(), l => Assert.True(l.Text.Length <= (l.Big ? 21 : 42), l.Text));
     }
 
     [Fact]
@@ -330,5 +381,141 @@ public class PrintApiTests(BillFixture f) : IClassFixture<BillFixture>, IAsyncLi
         Assert.Equal("application/octet-stream", response.Content.Headers.ContentType?.MediaType);
         var bytes = await response.Content.ReadAsByteArrayAsync();
         Assert.Equal(EscPos.FeedAndCut, bytes[^EscPos.FeedAndCut.Length..]);
+    }
+}
+
+/// <summary>Bills sent straight to the bill printer chosen in Settings (a fake printer here).</summary>
+public class DirectPrintTests(BillFixture f) : IClassFixture<BillFixture>, IAsyncLifetime
+{
+    private readonly HttpClient _c = f.CreateClient();
+
+    public async Task InitializeAsync()
+    {
+        await f.EnsureMenu();
+        f.Printer.Failure = null;
+        f.Printer.Jobs.Clear();
+        await _c.Put("/api/printers/current", new PrinterInput("POS-80C"));
+    }
+
+    public async Task DisposeAsync() => await _c.Put("/api/printers/current", new PrinterInput(""));
+
+    [Fact]
+    public async Task Lists_printers_and_saves_the_chosen_one()
+    {
+        var list = await _c.Get<PrintersDto>("/api/printers");
+        Assert.Equal(["Microsoft Print to PDF", "POS-80C"], list.Printers);
+        Assert.Equal("POS-80C", list.Current);
+        Assert.Equal("POS-80C", (await _c.Get<SettingsDto>("/api/settings")).PrinterName);
+
+        // The name is matched without caring about capitals, and saved as Windows spells it.
+        var saved = await (await _c.Put("/api/printers/current", new PrinterInput(" pos-80c "))).Read<PrintersDto>();
+        Assert.Equal("POS-80C", saved.Current);
+
+        var unknown = await _c.Put("/api/printers/current", new PrinterInput("Old Printer"));
+        Assert.Equal(HttpStatusCode.BadRequest, unknown.StatusCode);
+        Assert.Contains("printerName", await unknown.ErrorFields());
+        Assert.Equal("POS-80C", (await _c.Get<PrintersDto>("/api/printers")).Current);
+
+        var none = await (await _c.Put("/api/printers/current", new PrinterInput(""))).Read<PrintersDto>();
+        Assert.Equal("", none.Current);
+    }
+
+    [Fact]
+    public async Task Print_sends_the_bill_to_the_printer()
+    {
+        var bill = await _c.OpenDineIn("Direct-1");
+        await _c.AddLine(bill.Id, f.Tikka);
+
+        var first = await (await _c.PostAsync($"/api/bills/{bill.Id}/print", null)).Read<PrintOutput>();
+        Assert.Equal("POS-80C", first.PrintedTo);
+        Assert.Null(first.PrinterError);
+        var job = Assert.Single(f.Printer.Jobs);
+        Assert.Equal("POS-80C", job.Printer);
+        Assert.Equal(Convert.FromBase64String(first.EscPosBase64), job.Data);
+        Assert.Equal($"Bill {first.Bill.BillNo}", job.JobName);
+        Assert.Equal(EscPos.FeedAndCut, job.Data[^EscPos.FeedAndCut.Length..]);
+
+        // The preview never prints.
+        await _c.Get<PrintOutput>($"/api/bills/{bill.Id}/print-preview");
+        Assert.Single(f.Printer.Jobs);
+    }
+
+    [Fact]
+    public async Task Without_a_printer_nothing_is_sent()
+    {
+        await _c.Put("/api/printers/current", new PrinterInput(""));
+        var bill = await _c.OpenTakeaway();
+        await _c.AddLine(bill.Id, f.Tikka);
+
+        var output = await (await _c.PostAsync($"/api/bills/{bill.Id}/print", null)).Read<PrintOutput>();
+        Assert.Null(output.PrintedTo);
+        Assert.Null(output.PrinterError);
+        Assert.NotNull(output.Bill.BillNo);
+        Assert.Empty(f.Printer.Jobs);
+    }
+
+    [Fact]
+    public async Task Printer_failure_still_numbers_the_bill_and_it_can_be_sent_again()
+    {
+        var bill = await _c.OpenDineIn("Direct-2");
+        await _c.AddLine(bill.Id, f.Tikka);
+
+        f.Printer.Failure = "The printer is out of paper.";
+        var failed = await (await _c.PostAsync($"/api/bills/{bill.Id}/print", null)).Read<PrintOutput>();
+        Assert.Equal("The printer is out of paper.", failed.PrinterError);
+        Assert.Null(failed.PrintedTo);
+        Assert.NotNull(failed.Bill.BillNo);
+        Assert.Equal(1, failed.Bill.PrintCount);
+
+        // Sending again does not count as another print, so the customer's copy is not marked DUPLICATE.
+        f.Printer.Failure = null;
+        var resent = await (await _c.PostAsync($"/api/bills/{bill.Id}/print/resend", null)).Read<PrintOutput>();
+        Assert.Equal("POS-80C", resent.PrintedTo);
+        Assert.False(resent.Duplicate);
+        Assert.DoesNotContain("DUPLICATE", resent.Text);
+        Assert.Equal(1, resent.Bill.PrintCount);
+        Assert.Single(f.Printer.Jobs);
+
+        // After a real reprint, sending again repeats the DUPLICATE copy.
+        await _c.PostAsync($"/api/bills/{bill.Id}/print", null);
+        var resentCopy = await (await _c.PostAsync($"/api/bills/{bill.Id}/print/resend", null)).Read<PrintOutput>();
+        Assert.True(resentCopy.Duplicate);
+        Assert.Equal(2, resentCopy.Bill.PrintCount);
+    }
+
+    [Fact]
+    public async Task Resend_needs_a_printed_bill_and_a_printer()
+    {
+        var bill = await _c.OpenTakeaway();
+        await _c.AddLine(bill.Id, f.Tikka);
+        Assert.Equal(HttpStatusCode.Conflict, (await _c.PostAsync($"/api/bills/{bill.Id}/print/resend", null)).StatusCode);
+
+        await _c.PostAsync($"/api/bills/{bill.Id}/print", null);
+        await _c.Put("/api/printers/current", new PrinterInput(""));
+        Assert.Equal(HttpStatusCode.Conflict, (await _c.PostAsync($"/api/bills/{bill.Id}/print/resend", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Test_print_goes_to_the_given_or_chosen_printer()
+    {
+        Assert.Equal(HttpStatusCode.OK, (await _c.Post("/api/printers/test", new PrinterInput(null))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _c.Post("/api/printers/test", new PrinterInput("Microsoft Print to PDF"))).StatusCode);
+        Assert.Equal(["POS-80C", "Microsoft Print to PDF"], f.Printer.Jobs.Select(j => j.Printer));
+        var text = System.Text.Encoding.ASCII.GetString(f.Printer.Jobs[0].Data);
+        Assert.Contains("PRINTER TEST", text);
+        Assert.Contains("123456789012345678901234567890123456789012345678", text);
+
+        f.Printer.Failure = "Printer is offline.";
+        var failed = await _c.Post("/api/printers/test", new PrinterInput(null));
+        Assert.Equal(HttpStatusCode.Conflict, failed.StatusCode);
+        Assert.Contains("Printer is offline.", await failed.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public void Test_slip_fits_the_paper()
+    {
+        var doc = PrintEndpoints.TestSlip(new RestaurantSettings(), TestClock.India(2026, 10, 13, 20, 0));
+        Assert.All(doc.Lines, l => Assert.True(l.Text.Length <= doc.WidthFor(l.Size), l.Text));
+        Assert.All(doc.Lines, l => Assert.True(EscPos.IsPrintable(l.Text), l.Text));
     }
 }

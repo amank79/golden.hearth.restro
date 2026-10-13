@@ -5,28 +5,36 @@ using RestaurantPos.Api.Features.Billing;
 namespace RestaurantPos.Api.Features.Printing;
 
 /// <summary>
-/// The printed bill for an 80 mm printer, 48 characters per line. Shows the restaurant name, address, phone, GSTIN,
+/// The printed bill for an 80 mm printer: 48 characters per line in the printer's own font (direct printing), or 42
+/// for browser printing (Consolas 3 mm bold, chosen by the family on the real paper). Shows the restaurant name, address, phone, GSTIN,
 /// FSSAI no., document title (Tax Invoice / Bill of Supply), bill no., date and time, table or "Takeaway", items with
 /// qty, rate and amount, subtotal, discount, taxable value, CGST/SGST with rate and amount, round off, grand total,
 /// payment method(s) and the footer. Reprints are marked "DUPLICATE".
 /// </summary>
 public static class BillPrintLayout
 {
+    /// <summary>Characters per line in the printer's own font on 80 mm paper.</summary>
     public const int Width = 48;
 
-    // Item | Qty | Rate | Amount = 21 + 5 + 10 + 12 = 48
-    private const int ItemCol = 21, QtyCol = 5, RateCol = 10, AmountCol = 12;
+    /// <summary>Characters per line when printing through the browser: 42 at Consolas 3 mm bold is 69.3 mm of 72 mm.</summary>
+    public const int BrowserWidth = 42;
 
     public const string CompositionDeclaration = "Composition taxable person, not eligible to collect tax on supplies";
 
-    public static PrintDocument Build(Bill bill, RestaurantSettings shop, bool duplicate, DateTimeOffset? reprintedAt = null)
+    public static PrintDocument Build(Bill bill, RestaurantSettings shop, bool duplicate, DateTimeOffset? reprintedAt = null, int width = Width)
     {
-        var doc = new PrintDocument(Width);
+        var doc = new PrintDocument(width);
         var totals = BillService.Totals(bill);
 
-        // Header
+        // Item | Qty | Rate | Amount: 21 + 5 + 10 + 12 = 48, or 20 + 4 + 8 + 10 = 42.
+        var (itemCol, qtyCol, rateCol, amountCol) = width >= Width ? (21, 5, 10, 12) : (width - 22, 4, 8, 10);
+        string Row(string item, string qty, string rate, string amount) =>
+            item.PadRight(itemCol) + qty.PadLeft(qtyCol) + rate.PadLeft(rateCol) + amount.PadLeft(amountCol);
+
+        // Header: the name in large letters when it fits on two large lines ("THE GOLDEN HEARTH" / "RESTAURANT").
         var name = shop.Name.Trim().ToUpperInvariant();
-        doc.Center(name, bold: true, size: name.Length <= Width / 2 ? PrintSize.Double : PrintSize.Normal);
+        var large = PrintDocument.Wrap(name, doc.WidthFor(PrintSize.Double)).Count() <= 2;
+        doc.Center(name, bold: true, size: large ? PrintSize.Double : PrintSize.Normal);
         if (!string.IsNullOrWhiteSpace(shop.Address)) doc.Center(shop.Address.Trim());
         if (!string.IsNullOrWhiteSpace(shop.Phone)) doc.Center($"Ph: {shop.Phone.Trim()}");
         if (!string.IsNullOrWhiteSpace(shop.Gstin)) doc.Center($"GSTIN: {shop.Gstin}");
@@ -55,11 +63,11 @@ public static class BillPrintLayout
         foreach (var l in lines)
         {
             var label = l.VariantName is "" or "Regular" ? l.ItemName : $"{l.ItemName} ({l.VariantName})";
-            var parts = PrintDocument.Wrap(label, ItemCol).ToList();
+            var parts = PrintDocument.Wrap(label, itemCol).ToList();
             var qty = l.Qty.ToString(CultureInfo.InvariantCulture);
             var rate = Money.Format(l.UnitPricePaise);
             var amount = Money.Format(l.UnitPricePaise * l.Qty);
-            if (qty.Length < QtyCol && rate.Length < RateCol && amount.Length < AmountCol)
+            if (qty.Length < qtyCol && rate.Length < rateCol && amount.Length < amountCol)
             {
                 doc.Lines.Add(new PrintLine(Row(parts[0], qty, rate, amount)));
                 foreach (var more in parts.Skip(1)) doc.Lines.Add(new PrintLine("  " + more));
@@ -94,7 +102,12 @@ public static class BillPrintLayout
         }
         doc.LeftRight("Round off", (totals.RoundOffPaise > 0 ? "+" : "") + Money.Format(totals.RoundOffPaise));
         doc.Rule('=');
-        doc.LeftRight("GRAND TOTAL", $"Rs. {Money.Format(totals.TotalPaise)}", bold: true);
+        // Large and bold; "TOTAL" when "GRAND TOTAL" and the amount do not fit on one large line.
+        var total = $"Rs. {Money.Format(totals.TotalPaise)}";
+        var room = doc.WidthFor(PrintSize.Double) - total.Length - 1;
+        if (room >= "GRAND TOTAL".Length) doc.LeftRight("GRAND TOTAL", total, bold: true, size: PrintSize.Double);
+        else if (room >= "TOTAL".Length) doc.LeftRight("TOTAL", total, bold: true, size: PrintSize.Double);
+        else doc.LeftRight("GRAND TOTAL", total, bold: true);
         doc.Rule('=');
 
         // Payment
@@ -132,7 +145,4 @@ public static class BillPrintLayout
         PaymentMethod.Upi => "UPI",
         _ => m.ToString(),
     };
-
-    private static string Row(string item, string qty, string rate, string amount) =>
-        item.PadRight(ItemCol) + qty.PadLeft(QtyCol) + rate.PadLeft(RateCol) + amount.PadLeft(AmountCol);
 }

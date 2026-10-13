@@ -424,7 +424,7 @@ button.tile:hover, .tile:has(.tile-main:hover) { border-color: var(--gold-line);
 .pay-sum.bad { color: var(--red); background: var(--red-soft); }
 
 /* Printed bill preview (paper stays white in every theme) */
-.receipt { font-family: var(--mono); font-size: 13px; line-height: 1.35; background: #fff; border: 1px dashed #c9c3b8; border-radius: 6px; padding: 16px; color: #1e1e1e; margin: 0; overflow-x: auto; white-space: pre; width: fit-content; max-width: 100%; margin-inline: auto; box-shadow: var(--shadow-md); }
+.receipt { font-family: var(--mono); font-size: 13px; font-weight: 600; line-height: 1.35; background: #fff; border: 1px dashed #c9c3b8; border-radius: 6px; padding: 16px; color: #1e1e1e; margin: 0; overflow-x: auto; white-space: pre; width: fit-content; max-width: 100%; margin-inline: auto; box-shadow: var(--shadow-md); }
 
 /* Lists */
 .list-table { width: 100%; border-collapse: collapse; }
@@ -552,6 +552,14 @@ button.tile:hover, .tile:has(.tile-main:hover) { border-color: var(--gold-line);
 @media print {
   @page { margin: 0; }
   #root { display: none !important; }
-  /* 48 characters must fit the ~72 mm printable width of an 80 mm roll: Consolas is 0.55em wide, so 2.6mm text is about 69 mm. */
-  .print-only { display: block; margin: 0; padding: 2mm 1mm; font-family: var(--mono); font-size: 2.6mm; line-height: 1.3; color: #000; white-space: pre; }
+  /*
+   * 42 characters must fit the ~72 mm printable width of an 80 mm roll: Consolas is 0.55em wide, so 3 mm bold text is
+   * 69.3 mm (chosen by the family from test prints on their BonKaso printer). Large lines hold 21 characters at 6 mm.
+   */
+  .print-only { display: block; margin: 0; padding: 2mm 1mm; font-family: var(--mono); font-size: 3mm; font-weight: 700; line-height: 1.3; color: #000; }
 }
+
+/* Receipt lines (screen preview and browser printing): large lines are twice the size, like the printer's own. */
+.rl { white-space: pre; min-height: 1.3em; }
+.rl.big { font-size: 2em; line-height: 1.2; min-height: 1.2em; }
+.rl.b { font-weight: 800; }

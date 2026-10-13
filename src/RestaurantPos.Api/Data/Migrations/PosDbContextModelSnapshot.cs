@@ -398,6 +398,10 @@ namespace RestaurantPos.Api.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("PrinterName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("PublicId")
                         .HasColumnType("TEXT");
 
@@ -431,6 +435,7 @@ namespace RestaurantPos.Api.Data.Migrations
                             Gstin = "",
                             Name = "The Golden Hearth Restaurant",
                             Phone = "",
+                            PrinterName = "",
                             PublicId = new Guid("6f1c8c52-3a4e-4b8e-9d0a-5b1f2e7c9a01"),
                             Tables = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20",
                             TaxMode = "Regular",

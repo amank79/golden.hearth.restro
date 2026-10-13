@@ -11,6 +11,14 @@ export interface Settings {
   billFooter: string
   /** Tables shown on the billing screen, in order. */
   tables: string[]
+  /** Windows printer bills are sent to directly; empty when bills are printed through the browser. */
+  printerName?: string
+}
+
+/** The printers Windows has, and the one bills go to ("" = none). */
+export interface Printers {
+  printers: string[]
+  current: string
 }
 
 export type FoodType = 'Veg' | 'NonVeg' | 'Egg'
@@ -169,12 +177,25 @@ export interface CancelResult {
   newBill: Bill | null
 }
 
+export interface PrintTextLine {
+  text: string
+  bold: boolean
+  /** Printed at twice the normal size. */
+  big: boolean
+}
+
 export interface PrintOutput {
   bill: Bill
   duplicate: boolean
   isDraft: boolean
   text: string
   escPosBase64: string
+  /** The bill line by line as the browser prints it (42 characters; large lines hold 21). */
+  lines: PrintTextLine[]
+  /** The printer the bill was sent to, or null if it was not sent to one. */
+  printedTo?: string | null
+  /** Why the bill printer did not print it (the bill is still numbered). */
+  printerError?: string | null
 }
 
 export interface BackupResult {

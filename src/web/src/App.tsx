@@ -96,7 +96,9 @@ export default function App() {
   const printBill = useCallback(async (bill: Bill): Promise<Bill | null> => {
     try {
       const output = await api.post<PrintOutput>(`/bills/${bill.id}/print`)
-      setPreview({ output, printed: true })
+      // Sent to the bill printer: nothing to look at, so no pop-up during a rush.
+      if (output.printedTo) toast(`Bill ${output.bill.billNo} printed${output.duplicate ? ' (DUPLICATE)' : ''}.`)
+      else setPreview({ output, printed: true })
       loadToday()
       return output.bill
     } catch (e) {

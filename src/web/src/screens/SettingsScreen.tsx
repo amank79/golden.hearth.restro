@@ -6,7 +6,7 @@ import { api, ApiError, errorText } from '../lib/api'
 import { dateTime } from '../lib/bills'
 import { parsePercent, percent } from '../lib/money'
 import { applyTheme, savedTheme, THEMES, type Theme } from '../lib/theme'
-import type { BackupResult, BackupStatus, Settings } from '../lib/types'
+import type { BackupResult, BackupStatus, Printers, Settings } from '../lib/types'
 
 interface Props {
   settings: Settings
@@ -168,6 +168,76 @@ function TablesPanel({ tables, onSaved }: { tables: string[]; onSaved: (s: Setti
   )
 }
 
+/**
+ * The printer bills go to. With one chosen, Print sends the bill straight to it in its own large font and cuts the
+ * paper; with none, bills are printed through the browser's print dialog.
+ */
+function PrinterPanel({ settings, onSaved }: { settings: Settings; onSaved: (s: Settings) => void }) {
+  const [printers, setPrinters] = useState<string[] | null>(null)
+  const [choice, setChoice] = useState(settings.printerName ?? '')
+  const [busy, setBusy] = useState(false)
+
+  const load = () => {
+    api.get<Printers>('/printers').then((p) => {
+      setPrinters(p.printers)
+      setChoice(p.current)
+    }, (e) => toast(errorText(e), 'error'))
+  }
+  useEffect(load, [])
+
+  const current = settings.printerName ?? ''
+  const choose = async (name: string) => {
+    setChoice(name)
+    setBusy(true)
+    try {
+      const saved = await api.put<Printers>('/printers/current', { printerName: name })
+      onSaved({ ...settings, printerName: saved.current })
+      toast(saved.current ? `Bills will print on ${saved.current}.` : 'Bills will print through the browser.')
+    } catch (e) {
+      setChoice(current)
+      toast(errorText(e), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const test = async () => {
+    setBusy(true)
+    try {
+      await api.post('/printers/test', { printerName: choice })
+      toast(`Test slip sent to ${choice}. Check that the line of numbers fits and the paper is cut.`)
+    } catch (e) {
+      toast(errorText(e), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card panel">
+      <h2><Icon name="print" />Bill printer</h2>
+      <p className="muted">Bills go straight to this printer in its own large text, and the paper is cut. Saved straight away.</p>
+      <div className="form">
+        <Field label="Printer" hint="Install the printer's Windows driver first; it then appears in this list.">
+          <div className="row" style={{ flexWrap: 'nowrap' }}>
+            <select value={choice} onChange={(e) => void choose(e.target.value)} disabled={busy || printers === null} aria-label="Bill printer">
+              <option value="">None: print with the browser</option>
+              {current && printers && !printers.includes(current) && <option value={current}>{current} (not found)</option>}
+              {(printers ?? []).map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+            <button type="button" className="btn" onClick={load} disabled={busy} title="Look for printers again">Refresh</button>
+          </div>
+        </Field>
+        <div className="row">
+          <button type="button" className="btn dark" onClick={() => void test()} disabled={busy || !choice}>
+            <Icon name="print" />Print a test slip
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** Colour palette for this laptop. Saved straight away; not part of the restaurant settings. */
 function AppearancePanel() {
   const [theme, setTheme] = useState<Theme>(savedTheme)
@@ -311,6 +381,7 @@ export function SettingsScreen({ settings, onSaved, backup }: Props) {
             </div>
           </div>
 
+          <PrinterPanel settings={settings} onSaved={onSaved} />
           <BackupPanel backup={backup} />
           <AppearancePanel />
 

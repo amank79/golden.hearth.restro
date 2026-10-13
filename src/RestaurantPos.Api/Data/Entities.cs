@@ -39,6 +39,9 @@ public class RestaurantSettings : Entity
     public string Tables { get; set; } = DefaultTables;
 
     public static readonly string DefaultTables = string.Join('\n', Enumerable.Range(1, 20));
+
+    /// <summary>Windows printer that bills are sent to directly (ESC/POS). Empty: print through the browser.</summary>
+    public string PrinterName { get; set; } = "";
 }
 
 public class Category : Entity

@@ -16,6 +16,22 @@ INSTALL (first time) or UPDATE (new version)
   (use the pen drive's letter). The pen drive can stay plugged in; if it is missing, that copy
   is skipped and the normal backup still happens.
 
+BILL PRINTER (80 mm thermal, e.g. BonKaso BKT04)
+  1. Install the printer's Windows driver (from its CD, pen drive or the maker's website) and
+     connect it by USB. It must appear in Windows Settings > Bluetooth & devices > Printers.
+     In the driver's printer properties, turn on "auto cut" if it has that option.
+  2. Restaurant POS > Settings > Bill printer: choose the printer, then "Print a test slip".
+     The line of numbers 1234567890... must fit on one line, and the paper must be cut.
+  3. From then on, Print (F9) sends the bill straight to the printer: large printer text,
+     bold restaurant name and total, no print dialog. A short message says "printed".
+  If the printer is off or out of paper, Windows usually holds the bill in its print queue and
+  prints it when the printer is ready (check the queue in Windows Settings > Printers).
+  If Windows cannot take the bill at all (printer removed or renamed), the bill still gets its
+  number and the screen shows it with "Try printer again" (does not mark it DUPLICATE) and
+  "Print with browser". To go back to browser printing, choose "None" in Settings.
+  Browser printing uses 42 characters per line in bold 3 mm text with a large TOTAL (the size
+  chosen from test prints). In the print dialog choose the bill printer, Margins: None, Scale: 100.
+
 WHERE THINGS ARE
   App:       C:\Program Files\RestaurantPos
   Data:      C:\ProgramData\RestaurantPos\data\pos.db

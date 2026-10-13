@@ -5,7 +5,10 @@ using RestaurantPos.Api.Features.Billing;
 
 namespace RestaurantPos.Api.Features.Settings;
 
-/// <summary>Restaurant details and tax settings printed on every bill (SET-1, SET-2).</summary>
+/// <summary>
+/// Restaurant details and tax settings printed on every bill (SET-1, SET-2). Tables and PrinterName are only reported
+/// here; they are saved through PUT /settings/tables and PUT /printers/current.
+/// </summary>
 public record SettingsDto(
     string Name,
     string Address,
@@ -15,10 +18,11 @@ public record SettingsDto(
     TaxMode TaxMode,
     int GstRateBp,
     string BillFooter,
-    IReadOnlyList<string>? Tables = null)
+    IReadOnlyList<string>? Tables = null,
+    string? PrinterName = null)
 {
     public static SettingsDto From(RestaurantSettings s) =>
-        new(s.Name, s.Address, s.Phone, s.Gstin, s.FssaiNo, s.TaxMode, s.GstRateBp, s.BillFooter, SettingsEndpoints.TableList(s.Tables));
+        new(s.Name, s.Address, s.Phone, s.Gstin, s.FssaiNo, s.TaxMode, s.GstRateBp, s.BillFooter, SettingsEndpoints.TableList(s.Tables), s.PrinterName);
 }
 
 /// <summary>The tables shown on the billing screen, in order. Saved on its own, not with PUT /settings.</summary>

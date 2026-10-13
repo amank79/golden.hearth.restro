@@ -29,6 +29,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<RuleExceptionHandler>();
 builder.Services.AddScoped<BillService>();
+builder.Services.AddBillPrinter();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddDbContext<PosDbContext>(o => o.UseSqlite(paths.ConnectionString));
 builder.Services.AddPosBackup(builder.Configuration);
