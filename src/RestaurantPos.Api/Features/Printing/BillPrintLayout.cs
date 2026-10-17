@@ -50,6 +50,8 @@ public static class BillPrintLayout
         doc.LeftRight($"Bill No: {bill.BillNo ?? "-"}", $"Date: {when.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)}");
         doc.LeftRight(bill.OrderType == OrderType.DineIn ? $"Table: {bill.TableLabel}" : "Takeaway",
             $"Time: {when.ToString("hh:mm tt", CultureInfo.InvariantCulture)}");
+        // Only the name: the phone number is never printed.
+        if (!string.IsNullOrWhiteSpace(bill.CustomerName)) doc.Add($"Customer: {bill.CustomerName}");
         if (duplicate && reprintedAt is { } r)
         {
             doc.Add($"Reprinted: {IndiaTime.ToIndia(r).ToString("dd-MM-yyyy hh:mm tt", CultureInfo.InvariantCulture)}");

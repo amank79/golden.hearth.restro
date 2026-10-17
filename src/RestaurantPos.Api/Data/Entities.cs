@@ -129,8 +129,30 @@ public class Bill : Entity
     public int PrintCount { get; set; }
     public DateTimeOffset? LastPrintedAt { get; set; }
 
+    /// <summary>The customer the bill is for, if staff added one (for regulars' discounts and visit counts).</summary>
+    public int? CustomerId { get; set; }
+
+    /// <summary>The customer's name copied when they were added, so renaming the customer never changes this bill.</summary>
+    public string? CustomerName { get; set; }
+
     public List<BillLine> Lines { get; set; } = [];
     public List<Payment> Payments { get; set; } = [];
+}
+
+/// <summary>
+/// A customer staff can add to bills, found by phone number or name. Regulars can have a standing discount that is
+/// put on their bills automatically. The phone number is personal data: it is never printed or written to the logs.
+/// </summary>
+public class Customer : Entity
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+
+    /// <summary>Indian mobile number, 10 digits without +91 or spaces. Unique.</summary>
+    public string Phone { get; set; } = "";
+
+    /// <summary>Standing discount for this customer in basis points (1000 = 10%); 0 = none.</summary>
+    public int DiscountBp { get; set; }
 }
 
 /// <summary>Names and price are copied from the menu so later menu changes never alter old bills.</summary>

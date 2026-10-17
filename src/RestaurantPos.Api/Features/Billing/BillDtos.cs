@@ -41,7 +41,9 @@ public record BillDto(
     IReadOnlyList<PaymentDto> Payments,
     long PaidPaise,
     long BalancePaise,
-    int PrintCount);
+    int PrintCount,
+    int? CustomerId = null,
+    string? CustomerName = null);
 
 public record BillSummaryDto(
     int Id,
@@ -55,7 +57,8 @@ public record BillSummaryDto(
     int ItemCount,
     long TotalPaise,
     IReadOnlyList<PaymentMethod> PaymentMethods,
-    string? CancelReason);
+    string? CancelReason,
+    string? CustomerName = null);
 
 public record BillPage(IReadOnlyList<BillSummaryDto> Items, int Total);
 
@@ -78,6 +81,9 @@ public record OpenBillInput(OrderType OrderType, string? TableLabel);
 public record AddLineInput(int ItemVariantId, int Qty, string? Note);
 
 public record ChangeLineInput(int Qty, string? Note);
+
+/// <summary>The customer for a bill, or null to take the customer off.</summary>
+public record BillCustomerInput(int? CustomerId);
 
 public record DiscountInput(DiscountKind Kind, long Value, string? Reason);
 

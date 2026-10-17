@@ -38,6 +38,9 @@ public static class BillEndpoints
         g.MapDelete("/{id:int}/lines/{lineId:int}", async (int id, int lineId, BillService bills) =>
             ToDto(await bills.RemoveLineAsync(id, lineId)));
 
+        g.MapPut("/{id:int}/customer", async (int id, BillCustomerInput input, BillService bills) =>
+            ToDto(await bills.SetCustomerAsync(id, input.CustomerId)));
+
         g.MapPut("/{id:int}/discount", async (int id, DiscountInput input, BillService bills) => ToDto(await bills.SetDiscountAsync(id, input)));
 
         g.MapPost("/{id:int}/finalise", async (int id, BillService bills) => ToDto(await bills.FinaliseAsync(id)));
@@ -50,7 +53,7 @@ public static class BillEndpoints
             return new CancelResult(ToDto(cancelled), copy is null ? null : ToDto(copy));
         });
 
-        // Bill history with search (bill number, table or dish) and India-date range, newest first.
+        // Bill history with search (bill number, table, dish, customer name or phone) and India-date range, newest first.
         g.MapGet("", async (PosDbContext db, string? q, DateOnly? from, DateOnly? to, BillStatus? status, int skip = 0, int take = 50) =>
         {
             var query = SummaryQuery(db);
@@ -69,11 +72,15 @@ public static class BillEndpoints
             {
                 var like = $"%{text.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")}%";
                 var seq = int.TryParse(text, out var n) ? n : -1;
+                // Phone numbers are searched only with 4 or more digits, so a bill number like 12 does not match phones.
+                var phone = text.Length >= 4 && text.All(char.IsAsciiDigit) ? text : null;
                 query = query.Where(b =>
                     b.SeqNo == seq
                     || EF.Functions.Like(b.BillNo!, like, "\\")
                     || EF.Functions.Like(b.TableLabel!, like, "\\")
-                    || b.Lines.Any(l => l.RemovedAt == null && EF.Functions.Like(l.ItemName, like, "\\")));
+                    || b.Lines.Any(l => l.RemovedAt == null && EF.Functions.Like(l.ItemName, like, "\\"))
+                    || EF.Functions.Like(b.CustomerName!, like, "\\")
+                    || (phone != null && db.Customers.Any(c => c.Id == b.CustomerId && c.Phone.Contains(phone))));
             }
 
             var total = await query.CountAsync();
@@ -118,7 +125,7 @@ public static class BillEndpoints
     public static BillSummaryDto ToSummary(Bill b) => new(
         b.Id, b.BillNo, b.OrderType, b.TableLabel, b.Status, b.OpenedAt, b.FinalisedAt, b.SettledAt,
         BillService.Active(b).Sum(l => l.Qty), b.TotalPaise,
-        b.Payments.Select(p => p.Method).Distinct().Order().ToList(), b.CancelReason);
+        b.Payments.Select(p => p.Method).Distinct().Order().ToList(), b.CancelReason, b.CustomerName);
 
     public static BillDto ToDto(Bill b)
     {
@@ -135,6 +142,6 @@ public static class BillEndpoints
             t.TaxGroups.Select(g => new TaxGroupDto(g.GstRateBp, g.HalfRateBp, g.TaxablePaise, g.CgstPaise, g.SgstPaise)).ToList(),
             b.CgstPaise, b.SgstPaise, b.RoundOffPaise, b.TotalPaise,
             b.Payments.Select(p => new PaymentDto(p.Method, p.AmountPaise, p.At)).ToList(),
-            paid, b.Status == BillStatus.Cancelled ? 0 : b.TotalPaise - paid, b.PrintCount);
+            paid, b.Status == BillStatus.Cancelled ? 0 : b.TotalPaise - paid, b.PrintCount, b.CustomerId, b.CustomerName);
     }
 }

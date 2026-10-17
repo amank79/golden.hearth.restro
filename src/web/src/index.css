@@ -426,6 +426,21 @@ button.tile:hover, .tile:has(.tile-main:hover) { border-color: var(--gold-line);
 /* Printed bill preview (paper stays white in every theme) */
 .receipt { font-family: var(--mono); font-size: 13px; font-weight: 600; line-height: 1.35; background: #fff; border: 1px dashed #c9c3b8; border-radius: 6px; padding: 16px; color: #1e1e1e; margin: 0; overflow-x: auto; white-space: pre; width: fit-content; max-width: 100%; margin-inline: auto; box-shadow: var(--shadow-md); }
 
+/* Customer on the bill, customer search results and the Customers list */
+.bill-cust { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 20px; border-bottom: 1px solid var(--line); font-size: 14px; text-align: left; color: var(--ink); }
+.bill-cust:not(:disabled):hover { background: var(--hover); }
+.bill-cust .i { color: var(--muted); flex: none; }
+.bill-cust b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bill-cust .link-btn { margin-left: auto; }
+.cust-results { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
+.cust-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); text-align: left; color: var(--ink); background: var(--panel); }
+.cust-row:hover, .cust-row:focus-visible { border-color: var(--gold-line); background: var(--hover); }
+.cust-row.on { border-color: var(--gold-line); box-shadow: inset 0 0 0 1px var(--gold-line); }
+.cust-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--soft); color: var(--muted); flex: none; }
+.cust-main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.cust-main small { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.cust-list { flex: 1; min-height: 0; overflow: auto; }
+
 /* Lists */
 .list-table { width: 100%; border-collapse: collapse; }
 .list-table th { position: sticky; top: 0; z-index: 1; text-align: left; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--soft); white-space: nowrap; }

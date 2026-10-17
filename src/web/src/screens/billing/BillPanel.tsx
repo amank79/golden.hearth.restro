@@ -3,7 +3,8 @@ import { BillTotals } from '../../components/BillTotals'
 import { Icon } from '../../components/Icon'
 import { Monogram } from '../../components/Logo'
 import { billLabel, minutesAgo, plural } from '../../lib/bills'
-import { rupees, rupeesShort } from '../../lib/money'
+import { hasStandingDiscount } from '../../lib/customers'
+import { percent, rupees, rupeesShort } from '../../lib/money'
 import type { Bill, BillLine, PaymentMethod } from '../../lib/types'
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
   onEditLine: (line: BillLine) => void
   onQty: (line: BillLine, qty: number) => void
   onDiscount: () => void
+  onCustomer: () => void
   onPreview: () => void
   onChangeTable: () => void
   onCancel: () => void
@@ -24,7 +26,7 @@ interface Props {
 }
 
 /** The current bill: dishes with quantity, totals, and the Print / Cash / UPI / Card buttons. */
-export function BillPanel({ bill, now, flash, onNewDineIn, onNewTakeaway, onEditLine, onQty, onDiscount, onPreview, onChangeTable, onCancel, onPrint, onPay }: Props) {
+export function BillPanel({ bill, now, flash, onNewDineIn, onNewTakeaway, onEditLine, onQty, onDiscount, onCustomer, onPreview, onChangeTable, onCancel, onPrint, onPay }: Props) {
   const linesRef = useRef<HTMLDivElement>(null)
 
   // Keep the dish that was just added in view.
@@ -74,6 +76,21 @@ export function BillPanel({ bill, now, flash, onNewDineIn, onNewTakeaway, onEdit
           <button className="tool danger" onClick={onCancel} title="Cancel this bill (it stays in history)"><Icon name="cancel" />Cancel</button>
         </div>
       </header>
+
+      {(editable || bill.customerName) && (
+        <button className="bill-cust" onClick={onCustomer} disabled={!editable} title={editable ? 'Add or change the customer' : undefined}>
+          <Icon name="user" />
+          {bill.customerName ? (
+            <>
+              <b>{bill.customerName}</b>
+              {hasStandingDiscount(bill) && <span className="pill green">{percent(bill.discountValue)}% regular</span>}
+              {editable && <span className="link-btn">Change</span>}
+            </>
+          ) : (
+            <span className="muted">Add customer (mobile number)</span>
+          )}
+        </button>
+      )}
 
       {bill.isFinalised && (
         <div className="bill-banner">Printed bills cannot be changed. To change it, use Cancel and copy the dishes to a new bill.</div>

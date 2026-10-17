@@ -5,9 +5,10 @@ import { api, errorText } from '../../lib/api'
 import { billLabel, minutesAgo, notifyBillsChanged } from '../../lib/bills'
 import { searchItems } from '../../lib/menuSearch'
 import { rupees, rupeesShort } from '../../lib/money'
-import type { Bill, BillLine, BillSummary, CancelResult, DiscountKind, Menu, MenuItem, PaymentMethod, Variant } from '../../lib/types'
+import type { Bill, BillLine, BillSummary, CancelResult, Customer, DiscountKind, Menu, MenuItem, PaymentMethod, Variant } from '../../lib/types'
 import { BillPanel } from './BillPanel'
 import { CancelDialog } from './CancelDialog'
+import { CustomerDialog } from './CustomerDialog'
 import { DiscountDialog } from './DiscountDialog'
 import { ItemTile } from './ItemTile'
 import { LineEditor } from './LineEditor'
@@ -27,6 +28,7 @@ type Dialog =
   | { kind: 'table'; mode: 'new' | 'change'; pending?: Pending }
   | { kind: 'line'; line: BillLine }
   | { kind: 'discount' }
+  | { kind: 'customer' }
   | { kind: 'pay'; method: PaymentMethod }
   | { kind: 'cancel' }
 
@@ -349,6 +351,7 @@ export function BillingScreen({ tables, onPrint, onPreview }: Props) {
         onEditLine={(line) => setDialog({ kind: 'line', line })}
         onQty={(line, qty) => void setQty(line, qty)}
         onDiscount={() => setDialog({ kind: 'discount' })}
+        onCustomer={() => setDialog({ kind: 'customer' })}
         onPreview={() => bill && onPreview(bill)}
         onChangeTable={() => setDialog({ kind: 'table', mode: 'change' })}
         onCancel={() => setDialog({ kind: 'cancel' })}
@@ -415,6 +418,28 @@ export function BillingScreen({ tables, onPrint, onPreview }: Props) {
           onSave={(kind: DiscountKind, value, reason) => {
             closeDialog()
             void change(() => api.put<Bill>(`/bills/${bill.id}/discount`, { kind, value, reason }))
+          }}
+        />
+      )}
+      {dialog?.kind === 'customer' && bill && (
+        <CustomerDialog
+          bill={bill}
+          onClose={closeDialog}
+          onPick={(c: Customer) => {
+            closeDialog()
+            void change(() => api.put<Bill>(`/bills/${bill.id}/customer`, { customerId: c.id })).then((b) => {
+              if (!b) return
+              const standing = b.discountReason === 'Regular customer' && b.discountKind === 'Percent'
+              toast(
+                standing ? `${c.name} added: regular discount ${rupees(b.discountPaise)} applied.`
+                : c.discountBp > 0 ? `${c.name} added. The bill already had a discount, so it was kept instead of their regular one.`
+                : `${c.name} added to the bill.`,
+              )
+            })
+          }}
+          onRemove={() => {
+            closeDialog()
+            void change(() => api.put<Bill>(`/bills/${bill.id}/customer`, { customerId: null }))
           }}
         />
       )}

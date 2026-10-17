@@ -138,6 +138,9 @@ export interface Bill {
   paidPaise: number
   balancePaise: number
   printCount: number
+  /** The customer added to the bill, if any; the name is as it was when they were added. */
+  customerId: number | null
+  customerName: string | null
 }
 
 export interface BillSummary {
@@ -153,6 +156,7 @@ export interface BillSummary {
   totalPaise: number
   paymentMethods: PaymentMethod[]
   cancelReason: string | null
+  customerName: string | null
 }
 
 export interface BillPage {
@@ -212,4 +216,18 @@ export interface BackupStatus {
   folder: string
   extraFolders: { path: string; connected: boolean }[]
   lastResult: BackupResult | null
+}
+
+/** A customer (regular) found by phone or name. */
+export interface Customer {
+  id: number
+  name: string
+  /** 10-digit mobile number. Never printed. */
+  phone: string
+  /** Standing discount in basis points (1000 = 10%); 0 = none. */
+  discountBp: number
+  /** Printed or paid bills that were not cancelled. */
+  visits: number
+  spentPaise: number
+  lastVisitAt: string | null
 }

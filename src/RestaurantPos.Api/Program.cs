@@ -6,6 +6,7 @@ using RestaurantPos.Api.Backup;
 using RestaurantPos.Api.Data;
 using RestaurantPos.Api.Features;
 using RestaurantPos.Api.Features.Billing;
+using RestaurantPos.Api.Features.Customers;
 using RestaurantPos.Api.Features.Menu;
 using RestaurantPos.Api.Features.Printing;
 using RestaurantPos.Api.Features.Settings;
@@ -69,6 +70,7 @@ api.MapGet("/health", () => Results.Ok(new { status = "ok", version }));
 api.MapSettingsEndpoints();
 api.MapMenuEndpoints();
 api.MapBillEndpoints();
+api.MapCustomerEndpoints();
 api.MapPrintEndpoints();
 app.MapBackupEndpoints();
 

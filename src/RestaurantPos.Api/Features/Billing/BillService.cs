@@ -157,6 +157,37 @@ public class BillService(PosDbContext db, TimeProvider clock)
         return await RecalculateAndSaveAsync(bill);
     }
 
+    /// <summary>Discount reason used for a customer's standing discount (also one of the reasons staff can pick).</summary>
+    public const string RegularDiscountReason = "Regular customer";
+
+    /// <summary>
+    /// Adds a customer to the bill (or takes them off with null). A regular's standing discount is put on the bill,
+    /// unless staff already gave a different discount; taking the customer off removes that standing discount again.
+    /// </summary>
+    public async Task<Bill> SetCustomerAsync(int id, int? customerId)
+    {
+        var bill = await EditableAsync(id);
+        var standing = bill.DiscountKind != DiscountKind.None && bill.DiscountReason == RegularDiscountReason;
+        var customer = customerId is null ? null
+            : await db.Customers.FindAsync(customerId.Value) ?? throw RuleException.NotFound("Customer");
+
+        bill.CustomerId = customer?.Id;
+        bill.CustomerName = customer?.Name;
+        if (customer is { DiscountBp: > 0 } && (bill.DiscountKind == DiscountKind.None || standing))
+        {
+            bill.DiscountKind = DiscountKind.Percent;
+            bill.DiscountValue = customer.DiscountBp;
+            bill.DiscountReason = RegularDiscountReason;
+        }
+        else if (standing)
+        {
+            bill.DiscountKind = DiscountKind.None;
+            bill.DiscountValue = 0;
+            bill.DiscountReason = null;
+        }
+        return await RecalculateAndSaveAsync(bill);
+    }
+
     /// <summary>
     /// Freezes the bill and gives it the next bill number (first print). Does nothing if it already has a number.
     /// </summary>
@@ -238,7 +269,15 @@ public class BillService(PosDbContext db, TimeProvider clock)
         if (input.CopyToNewBill)
         {
             var settings = await db.GetSettingsAsync();
-            copy = new Bill { OrderType = bill.OrderType, TableLabel = bill.TableLabel, OpenedAt = now, TaxMode = settings.TaxMode };
+            copy = new Bill
+            {
+                OrderType = bill.OrderType, TableLabel = bill.TableLabel, OpenedAt = now, TaxMode = settings.TaxMode,
+                CustomerId = bill.CustomerId, CustomerName = bill.CustomerName,
+            };
+            if (bill.DiscountKind != DiscountKind.None && bill.DiscountReason == RegularDiscountReason)
+            {
+                (copy.DiscountKind, copy.DiscountValue, copy.DiscountReason) = (bill.DiscountKind, bill.DiscountValue, bill.DiscountReason);
+            }
             foreach (var l in Active(bill))
             {
                 copy.Lines.Add(new BillLine

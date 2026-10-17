@@ -38,6 +38,13 @@ namespace RestaurantPos.Api.Data.Migrations
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("DiscountKind")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -112,6 +119,8 @@ namespace RestaurantPos.Api.Data.Migrations
 
                     b.HasIndex("BillNo")
                         .IsUnique();
+
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("PublicId")
                         .IsUnique();
@@ -220,6 +229,45 @@ namespace RestaurantPos.Api.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("RestaurantPos.Api.Data.Customer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DiscountBp")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Phone")
+                        .IsUnique();
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.ToTable("Customers");
                 });
 
             modelBuilder.Entity("RestaurantPos.Api.Data.ItemVariant", b =>
@@ -441,6 +489,14 @@ namespace RestaurantPos.Api.Data.Migrations
                             TaxMode = "Regular",
                             UpdatedAt = 1309207560192000000L
                         });
+                });
+
+            modelBuilder.Entity("RestaurantPos.Api.Data.Bill", b =>
+                {
+                    b.HasOne("RestaurantPos.Api.Data.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RestaurantPos.Api.Data.BillLine", b =>

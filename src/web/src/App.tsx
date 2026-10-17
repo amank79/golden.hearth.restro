@@ -10,15 +10,17 @@ import { dateTime, day, indiaToday, plural, time } from './lib/bills'
 import { rupees } from './lib/money'
 import type { BackupStatus, Bill, BillSummary, PrintOutput, Settings, TodaySummary } from './lib/types'
 import { BillingScreen } from './screens/billing/BillingScreen'
+import { CustomersScreen } from './screens/customers/CustomersScreen'
 import { BillsScreen } from './screens/history/BillsScreen'
 import { MenuScreen } from './screens/menu/MenuScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 
-type ScreenId = 'billing' | 'bills' | 'menu' | 'settings'
+type ScreenId = 'billing' | 'bills' | 'customers' | 'menu' | 'settings'
 
 const SCREENS: { id: ScreenId; label: string; icon: IconName }[] = [
   { id: 'billing', label: 'Billing', icon: 'billing' },
   { id: 'bills', label: 'Bill history', icon: 'bills' },
+  { id: 'customers', label: 'Customers', icon: 'user' },
   { id: 'menu', label: 'Menu', icon: 'menu' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
 ]
@@ -197,6 +199,7 @@ export default function App() {
             <>
               {screen === 'billing' && <BillingScreen tables={settings.tables} onPrint={printBill} onPreview={previewBill} />}
               {screen === 'bills' && <BillsScreen onPrint={printBill} onPreview={previewBill} />}
+              {screen === 'customers' && <CustomersScreen />}
               {screen === 'menu' && <MenuScreen settings={settings} />}
               {screen === 'settings' && <SettingsScreen settings={settings} onSaved={setSettings} backup={backup} />}
             </>

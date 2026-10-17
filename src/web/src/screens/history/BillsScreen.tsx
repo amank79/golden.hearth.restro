@@ -111,7 +111,7 @@ export function BillsScreen({ onPrint, onPreview }: Props) {
       <div className="filters">
         <label className="search">
           <Icon name="search" />
-          <input placeholder="Bill no. (e.g. 123), table or dish…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+          <input placeholder="Bill no. (e.g. 123), table, dish, customer or mobile…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
           {q && <button className="icon-btn" onClick={() => setQ('')} aria-label="Clear search"><Icon name="close" /></button>}
         </label>
         <button className={`chip${isToday ? ' on' : ''}`} onClick={() => setDates(indiaToday(), indiaToday())}>Today</button>
@@ -145,7 +145,7 @@ export function BillsScreen({ onPrint, onPreview }: Props) {
                 <tr key={b.id} className={`clickable${detail?.id === b.id ? ' sel' : ''}`} onClick={() => void open(b.id)}>
                   <td><b>{b.billNo ?? '—'}</b></td>
                   <td style={{ whiteSpace: 'nowrap' }}>{dateTime(b.finalisedAt ?? b.openedAt)}</td>
-                  <td>{billLabel(b)}</td>
+                  <td>{billLabel(b)}{b.customerName && <div className="muted" style={{ fontSize: 12.5 }}>{b.customerName}</div>}</td>
                   <td className="num"><b>{rupees(b.totalPaise)}</b></td>
                   <td>{b.paymentMethods.map(methodLabel).join(' + ')}</td>
                   <td><StatusPill b={b} /></td>
@@ -171,6 +171,7 @@ export function BillsScreen({ onPrint, onPreview }: Props) {
                   <h2>{detail.billNo ? `Bill ${detail.billNo}` : billLabel(detail)} <StatusPill b={detail} /></h2>
                   <div className="detail-meta">
                     <span>Table</span><div>{billLabel(detail)}</div>
+                    {detail.customerName && <><span>Customer</span><div>{detail.customerName}</div></>}
                     <span>Opened</span><div>{dateTime(detail.openedAt)}</div>
                     <span>Printed</span><div>{detail.finalisedAt ? `${dateTime(detail.finalisedAt)} · ${detail.printCount}×` : 'not yet'}</div>
                     <span>Document</span><div>{detail.documentTitle}</div>

@@ -16,6 +16,7 @@ public class PosDbContext(DbContextOptions<PosDbContext> options, TimeProvider c
     public DbSet<Bill> Bills => Set<Bill>();
     public DbSet<BillLine> BillLines => Set<BillLine>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Customer> Customers => Set<Customer>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -49,6 +50,13 @@ public class PosDbContext(DbContextOptions<PosDbContext> options, TimeProvider c
         b.Entity<Bill>().HasIndex(x => x.Status);
         b.Entity<Bill>().HasMany(x => x.Lines).WithOne().HasForeignKey(l => l.BillId);
         b.Entity<Bill>().HasMany(x => x.Payments).WithOne().HasForeignKey(p => p.BillId);
+        b.Entity<Bill>().Property(x => x.CustomerName).HasMaxLength(60);
+
+        // A customer on bills must not be deleted (bills keep pointing at them).
+        b.Entity<Bill>().HasOne<Customer>().WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<Customer>().Property(c => c.Name).HasMaxLength(60);
+        b.Entity<Customer>().Property(c => c.Phone).HasMaxLength(10);
+        b.Entity<Customer>().HasIndex(c => c.Phone).IsUnique();
 
         // Bills are never deleted, and menu rows used on bills must not be deleted either (deactivate instead).
         b.Entity<BillLine>().HasOne<MenuItem>().WithMany().HasForeignKey(l => l.MenuItemId).OnDelete(DeleteBehavior.Restrict);
